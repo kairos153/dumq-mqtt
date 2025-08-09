@@ -454,7 +454,7 @@ impl MqttCodec {
         log::debug!("Decoding remaining length, buffer size: {}", buf.len());
         
         for i in 0..4 {
-            if buf.len() < 1 {
+            if buf.is_empty() {
                 return Err(Error::InvalidPacket("Insufficient data for remaining length".to_string()));
             }
             
@@ -560,34 +560,118 @@ impl MqttCodec {
         }))
     }
 
-    fn encode_pubrec(&self, _pubrec: &PubRecPacket, _buf: &mut BytesMut) -> Result<()> {
-        // TODO: Implement pubrec encoding
+    fn encode_pubrec(&self, pubrec: &PubRecPacket, buf: &mut BytesMut) -> Result<()> {
+        // Packet ID
+        buf.put_u16(pubrec.packet_id);
+        
+        // Reason code (MQTT 5.0)
+        if let Some(reason_code) = pubrec.reason_code {
+            buf.put_u8(reason_code);
+        }
+        
+        // Properties (MQTT 5.0) - placeholder for now
+        if let Some(_properties) = &pubrec.properties {
+            // TODO: Implement properties encoding
+        }
+        
         Ok(())
     }
 
-    fn decode_pubrec(&self, _buf: &mut BytesMut) -> Result<PacketPayload> {
-        // TODO: Implement pubrec decoding
-        Err(Error::Protocol("PubRec not implemented".to_string()))
+    fn decode_pubrec(&self, buf: &mut BytesMut) -> Result<PacketPayload> {
+        // Packet ID
+        let packet_id = buf.get_u16();
+        
+        // Reason code (MQTT 5.0) - default to 0 (Success)
+        let reason_code = if buf.has_remaining() {
+            Some(buf.get_u8())
+        } else {
+            None
+        };
+        
+        // Properties (MQTT 5.0) - placeholder for now
+        let properties = None;
+        
+        Ok(PacketPayload::PubRec(PubRecPacket {
+            packet_id,
+            reason_code,
+            properties,
+        }))
     }
 
-    fn encode_pubrel(&self, _pubrel: &PubRelPacket, _buf: &mut BytesMut) -> Result<()> {
-        // TODO: Implement pubrel encoding
+    fn encode_pubrel(&self, pubrel: &PubRelPacket, buf: &mut BytesMut) -> Result<()> {
+        // Packet ID
+        buf.put_u16(pubrel.packet_id);
+        
+        // Reason code (MQTT 5.0)
+        if let Some(reason_code) = pubrel.reason_code {
+            buf.put_u8(reason_code);
+        }
+        
+        // Properties (MQTT 5.0) - placeholder for now
+        if let Some(_properties) = &pubrel.properties {
+            // TODO: Implement properties encoding
+        }
+        
         Ok(())
     }
 
-    fn decode_pubrel(&self, _buf: &mut BytesMut) -> Result<PacketPayload> {
-        // TODO: Implement pubrel decoding
-        Err(Error::Protocol("PubRel not implemented".to_string()))
+    fn decode_pubrel(&self, buf: &mut BytesMut) -> Result<PacketPayload> {
+        // Packet ID
+        let packet_id = buf.get_u16();
+        
+        // Reason code (MQTT 5.0) - default to 0 (Success)
+        let reason_code = if buf.has_remaining() {
+            Some(buf.get_u8())
+        } else {
+            None
+        };
+        
+        // Properties (MQTT 5.0) - placeholder for now
+        let properties = None;
+        
+        Ok(PacketPayload::PubRel(PubRelPacket {
+            packet_id,
+            reason_code,
+            properties,
+        }))
     }
 
-    fn encode_pubcomp(&self, _pubcomp: &PubCompPacket, _buf: &mut BytesMut) -> Result<()> {
-        // TODO: Implement pubcomp encoding
+    fn encode_pubcomp(&self, pubcomp: &PubCompPacket, buf: &mut BytesMut) -> Result<()> {
+        // Packet ID
+        buf.put_u16(pubcomp.packet_id);
+        
+        // Reason code (MQTT 5.0)
+        if let Some(reason_code) = pubcomp.reason_code {
+            buf.put_u8(reason_code);
+        }
+        
+        // Properties (MQTT 5.0) - placeholder for now
+        if let Some(_properties) = &pubcomp.properties {
+            // TODO: Implement properties encoding
+        }
+        
         Ok(())
     }
 
-    fn decode_pubcomp(&self, _buf: &mut BytesMut) -> Result<PacketPayload> {
-        // TODO: Implement pubcomp decoding
-        Err(Error::Protocol("PubComp not implemented".to_string()))
+    fn decode_pubcomp(&self, buf: &mut BytesMut) -> Result<PacketPayload> {
+        // Packet ID
+        let packet_id = buf.get_u16();
+        
+        // Reason code (MQTT 5.0) - default to 0 (Success)
+        let reason_code = if buf.has_remaining() {
+            Some(buf.get_u8())
+        } else {
+            None
+        };
+        
+        // Properties (MQTT 5.0) - placeholder for now
+        let properties = None;
+        
+        Ok(PacketPayload::PubComp(PubCompPacket {
+            packet_id,
+            reason_code,
+            properties,
+        }))
     }
 
     fn encode_subscribe(&self, subscribe: &SubscribePacket, buf: &mut BytesMut) -> Result<()> {
@@ -971,5 +1055,419 @@ mod tests {
         let result = codec.decode(&mut buf);
         assert!(result.is_ok());
         assert!(result.unwrap().is_none()); // Should return None for incomplete packet
+    }
+
+    #[test]
+    fn test_encode_decode_puback_packet() {
+        let codec = MqttCodec::new(4);
+        
+        let puback = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::PubAck,
+                dup: false,
+                qos: 0,
+                retain: false,
+                remaining_length: 2, // 2 bytes for packet ID
+            },
+            payload: PacketPayload::PubAck(PubAckPacket {
+                packet_id: 12345,
+                reason_code: None,
+                properties: None,
+            }),
+        };
+        
+        // Test encoding
+        let encoded = codec.encode(&puback).unwrap();
+        assert!(!encoded.is_empty());
+        
+        // Test decoding
+        let mut buf = BytesMut::from(encoded.as_ref());
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+        
+        assert_eq!(decoded.header.packet_type, PacketType::PubAck);
+        
+        if let PacketPayload::PubAck(decoded_puback) = decoded.payload {
+            assert_eq!(decoded_puback.packet_id, 12345);
+        } else {
+            panic!("Expected PubAck payload");
+        }
+    }
+
+    #[test]
+    fn test_encode_decode_pubrec_packet() {
+        let codec = MqttCodec::new(4);
+        
+        let pubrec = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::PubRec,
+                dup: false,
+                qos: 0,
+                retain: false,
+                remaining_length: 2, // 2 bytes for packet ID
+            },
+            payload: PacketPayload::PubRec(PubRecPacket {
+                packet_id: 54321,
+                reason_code: None,
+                properties: None,
+            }),
+        };
+        
+        // Test encoding
+        let encoded = codec.encode(&pubrec).unwrap();
+        assert!(!encoded.is_empty());
+        
+        // Test decoding
+        let mut buf = BytesMut::from(encoded.as_ref());
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+        
+        assert_eq!(decoded.header.packet_type, PacketType::PubRec);
+        
+        if let PacketPayload::PubRec(decoded_pubrec) = decoded.payload {
+            assert_eq!(decoded_pubrec.packet_id, 54321);
+        } else {
+            panic!("Expected PubRec payload");
+        }
+    }
+
+    #[test]
+    fn test_encode_decode_pubrel_packet() {
+        let codec = MqttCodec::new(4);
+        
+        let pubrel = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::PubRel,
+                dup: false,
+                qos: 1, // PUBREL must use QoS 1
+                retain: false,
+                remaining_length: 2, // 2 bytes for packet ID
+            },
+            payload: PacketPayload::PubRel(PubRelPacket {
+                packet_id: 54321,
+                reason_code: None,
+                properties: None,
+            }),
+        };
+        
+        // Test encoding
+        let encoded = codec.encode(&pubrel).unwrap();
+        assert!(!encoded.is_empty());
+        
+        // Test decoding
+        let mut buf = BytesMut::from(encoded.as_ref());
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+        
+        assert_eq!(decoded.header.packet_type, PacketType::PubRel);
+        assert_eq!(decoded.header.qos, 1); // PUBREL must have QoS 1
+        
+        if let PacketPayload::PubRel(decoded_pubrel) = decoded.payload {
+            assert_eq!(decoded_pubrel.packet_id, 54321);
+        } else {
+            panic!("Expected PubRel payload");
+        }
+    }
+
+    #[test]
+    fn test_encode_decode_pubcomp_packet() {
+        let codec = MqttCodec::new(4);
+        
+        let pubcomp = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::PubComp,
+                dup: false,
+                qos: 0,
+                retain: false,
+                remaining_length: 2, // 2 bytes for packet ID
+            },
+            payload: PacketPayload::PubComp(PubCompPacket {
+                packet_id: 11111,
+                reason_code: None,
+                properties: None,
+            }),
+        };
+        
+        // Test encoding
+        let encoded = codec.encode(&pubcomp).unwrap();
+        assert!(!encoded.is_empty());
+        
+        // Test decoding
+        let mut buf = BytesMut::from(encoded.as_ref());
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+        
+        assert_eq!(decoded.header.packet_type, PacketType::PubComp);
+        
+        if let PacketPayload::PubComp(decoded_pubcomp) = decoded.payload {
+            assert_eq!(decoded_pubcomp.packet_id, 11111);
+        } else {
+            panic!("Expected PubComp payload");
+        }
+    }
+
+    #[test]
+    fn test_encode_decode_publish_qos1_packet() {
+        let codec = MqttCodec::new(4);
+        
+        let publish = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::Publish,
+                dup: false,
+                qos: 1, // QoS 1
+                retain: false,
+                remaining_length: 0, // Will be calculated
+            },
+            payload: PacketPayload::Publish(PublishPacket {
+                topic_name: "test/topic".to_string(),
+                packet_id: Some(12345), // QoS 1 requires packet ID
+                payload: Bytes::from("Hello QoS 1"),
+                properties: None,
+            }),
+        };
+        
+        // Test encoding
+        let encoded = codec.encode(&publish).unwrap();
+        assert!(!encoded.is_empty());
+        
+        // Test decoding
+        let mut buf = BytesMut::from(encoded.as_ref());
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+        
+        assert_eq!(decoded.header.packet_type, PacketType::Publish);
+        assert_eq!(decoded.header.qos, 1);
+        
+        if let PacketPayload::Publish(decoded_publish) = decoded.payload {
+            assert_eq!(decoded_publish.topic_name, "test/topic");
+            assert_eq!(decoded_publish.packet_id, Some(12345));
+            assert_eq!(decoded_publish.payload, "Hello QoS 1");
+        } else {
+            panic!("Expected Publish payload");
+        }
+    }
+
+    #[test]
+    fn test_encode_decode_publish_qos2_packet() {
+        let codec = MqttCodec::new(4);
+        
+        let publish = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::Publish,
+                dup: false,
+                qos: 2, // QoS 2
+                retain: false,
+                remaining_length: 0, // Will be calculated
+            },
+            payload: PacketPayload::Publish(PublishPacket {
+                topic_name: "test/topic/qos2".to_string(),
+                packet_id: Some(54321), // QoS 2 requires packet ID
+                payload: Bytes::from("Hello QoS 2"),
+                properties: None,
+            }),
+        };
+        
+        // Test encoding
+        let encoded = codec.encode(&publish).unwrap();
+        assert!(!encoded.is_empty());
+        
+        // Test decoding
+        let mut buf = BytesMut::from(encoded.as_ref());
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+        
+        assert_eq!(decoded.header.packet_type, PacketType::Publish);
+        assert_eq!(decoded.header.qos, 2);
+        
+        if let PacketPayload::Publish(decoded_publish) = decoded.payload {
+            assert_eq!(decoded_publish.topic_name, "test/topic/qos2");
+            assert_eq!(decoded_publish.packet_id, Some(54321));
+            assert_eq!(decoded_publish.payload, "Hello QoS 2");
+        } else {
+            panic!("Expected Publish payload");
+        }
+    }
+
+    #[test]
+    fn test_encode_decode_subscribe_packet() {
+        let codec = MqttCodec::new(4);
+        
+        let subscribe = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::Subscribe,
+                dup: false,
+                qos: 1, // Subscribe packets use QoS 1
+                retain: false,
+                remaining_length: 0, // Will be calculated
+            },
+            payload: PacketPayload::Subscribe(SubscribePacket {
+                packet_id: 12345,
+                topic_filters: vec![
+                    TopicFilter {
+                        topic: "topic1".to_string(),
+                        qos: 0,
+                        no_local: false,
+                        retain_as_published: false,
+                        retain_handling: 0,
+                    },
+                    TopicFilter {
+                        topic: "topic2".to_string(),
+                        qos: 1,
+                        no_local: false,
+                        retain_as_published: false,
+                        retain_handling: 0,
+                    },
+                    TopicFilter {
+                        topic: "topic3".to_string(),
+                        qos: 2,
+                        no_local: false,
+                        retain_as_published: false,
+                        retain_handling: 0,
+                    },
+                ],
+                properties: None,
+            }),
+        };
+        
+        // Test encoding
+        let encoded = codec.encode(&subscribe).unwrap();
+        assert!(!encoded.is_empty());
+        
+        // Test decoding
+        let mut buf = BytesMut::from(encoded.as_ref());
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+        
+        assert_eq!(decoded.header.packet_type, PacketType::Subscribe);
+        assert_eq!(decoded.header.qos, 1);
+        
+        if let PacketPayload::Subscribe(decoded_subscribe) = decoded.payload {
+            assert_eq!(decoded_subscribe.packet_id, 12345);
+            assert_eq!(decoded_subscribe.topic_filters.len(), 3);
+            assert_eq!(decoded_subscribe.topic_filters[0].topic, "topic1");
+            assert_eq!(decoded_subscribe.topic_filters[0].qos, 0);
+            assert_eq!(decoded_subscribe.topic_filters[1].topic, "topic2");
+            assert_eq!(decoded_subscribe.topic_filters[1].qos, 1);
+            assert_eq!(decoded_subscribe.topic_filters[2].topic, "topic3");
+            assert_eq!(decoded_subscribe.topic_filters[2].qos, 2);
+        } else {
+            panic!("Expected Subscribe payload");
+        }
+    }
+
+    #[test]
+    fn test_encode_decode_suback_packet() {
+        let codec = MqttCodec::new(4);
+        
+        let suback = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::SubAck,
+                dup: false,
+                qos: 0,
+                retain: false,
+                remaining_length: 0, // Will be calculated
+            },
+            payload: PacketPayload::SubAck(SubAckPacket {
+                packet_id: 12345,
+                return_codes: vec![0, 1, 2], // QoS 0, 1, 2
+                properties: None,
+            }),
+        };
+        
+        // Test encoding
+        let encoded = codec.encode(&suback).unwrap();
+        assert!(!encoded.is_empty());
+        
+        // Test decoding
+        let mut buf = BytesMut::from(encoded.as_ref());
+        let decoded = codec.decode(&mut buf).unwrap().unwrap();
+        
+        assert_eq!(decoded.header.packet_type, PacketType::SubAck);
+        
+        if let PacketPayload::SubAck(decoded_suback) = decoded.payload {
+            assert_eq!(decoded_suback.packet_id, 12345);
+            assert_eq!(decoded_suback.return_codes, vec![0, 1, 2]);
+        } else {
+            panic!("Expected SubAck payload");
+        }
+    }
+
+    #[test]
+    fn test_qos_flow_integration() {
+        let codec = MqttCodec::new(4);
+        
+        // Test complete QoS 2 flow: PUBLISH -> PUBREC -> PUBREL -> PUBCOMP
+        let publish = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::Publish,
+                dup: false,
+                qos: 2,
+                retain: false,
+                remaining_length: 0,
+            },
+            payload: PacketPayload::Publish(PublishPacket {
+                topic_name: "test/qos2".to_string(),
+                packet_id: Some(65535),
+                payload: Bytes::from("QoS 2 message"),
+                properties: None,
+            }),
+        };
+        
+        let pubrec = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::PubRec,
+                dup: false,
+                qos: 0,
+                retain: false,
+                remaining_length: 2,
+            },
+            payload: PacketPayload::PubRec(PubRecPacket {
+                packet_id: 65535,
+                reason_code: None,
+                properties: None,
+            }),
+        };
+        
+        let pubrel = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::PubRel,
+                dup: false,
+                qos: 1,
+                retain: false,
+                remaining_length: 2,
+            },
+            payload: PacketPayload::PubRel(PubRelPacket {
+                packet_id: 65535,
+                reason_code: None,
+                properties: None,
+            }),
+        };
+        
+        let pubcomp = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::PubComp,
+                dup: false,
+                qos: 0,
+                retain: false,
+                remaining_length: 2,
+            },
+            payload: PacketPayload::PubComp(PubCompPacket {
+                packet_id: 65535,
+                reason_code: None,
+                properties: None,
+            }),
+        };
+        
+        // Test encoding and decoding of all packets in the flow
+        let packets = vec![publish, pubrec, pubrel, pubcomp];
+        
+        for packet in packets {
+            let encoded = codec.encode(&packet).unwrap();
+            let mut buf = BytesMut::from(encoded.as_ref());
+            let decoded = codec.decode(&mut buf).unwrap().unwrap();
+            
+            assert_eq!(decoded.header.packet_type, packet.header.packet_type);
+            assert_eq!(decoded.header.qos, packet.header.qos);
+            
+            // Verify packet ID consistency for QoS 2 flow
+            if let PacketPayload::Publish(p) = &packet.payload {
+                if let PacketPayload::Publish(d) = &decoded.payload {
+                    assert_eq!(d.packet_id, p.packet_id);
+                }
+            }
+        }
     }
 } 

@@ -59,16 +59,14 @@ impl ServerConfig {
 }
 
 /// Authentication configuration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Authentication {
     pub users: HashMap<String, String>, // username -> password
 }
 
 impl Authentication {
     pub fn new() -> Self {
-        Self {
-            users: HashMap::new(),
-        }
+        Self::default()
     }
 
     pub fn add_user(mut self, username: impl Into<String>, password: impl Into<String>) -> Self {
@@ -328,11 +326,20 @@ impl ServerConnection {
     async fn handle_publish(&mut self, publish: PublishPacket) -> Result<()> {
         info!("Handling PUBLISH to topic: {}", publish.topic_name);
 
+        // Determine QoS level from packet header or packet_id presence
+        let qos_level = if publish.packet_id.is_some() {
+            // For now, assume QoS 1 if packet_id is present
+            // In a real implementation, this should come from the packet header
+            1
+        } else {
+            0
+        };
+
         // Create message
         let message = Message {
             topic: publish.topic_name.clone(),
             payload: publish.payload.clone(),
-            qos: publish.packet_id.map(|_| 1).unwrap_or(0),
+            qos: qos_level,
             retain: false, // TODO: Handle retain flag
             dup: false,
             packet_id: publish.packet_id,
@@ -349,7 +356,34 @@ impl ServerConnection {
 
         // Send acknowledgment for QoS 1 and 2
         if let Some(packet_id) = publish.packet_id {
-            self.send_puback(packet_id).await?;
+            match qos_level {
+                1 => {
+                    // QoS 1: Send PUBACK
+                    info!("Sending PUBACK for QoS 1 message with packet ID: {}", packet_id);
+                    self.send_puback(packet_id).await?;
+                }
+                2 => {
+                    // QoS 2: Send PUBREC first
+                    info!("Sending PUBREC for QoS 2 message with packet ID: {}", packet_id);
+                    self.send_pubrec(packet_id).await?;
+                    
+                    // Wait for PUBREL
+                    info!("Waiting for PUBREL for packet ID: {}", packet_id);
+                    let packet = self.read_packet().await?;
+                    match packet.payload {
+                        PacketPayload::PubRel(pubrel) => {
+                            if pubrel.packet_id != packet_id {
+                                return Err(Error::Protocol("Mismatched PUBREL packet ID".to_string()));
+                            }
+                            // Send PUBCOMP
+                            info!("Sending PUBCOMP for packet ID: {}", packet_id);
+                            self.send_pubcomp(packet_id).await?;
+                        }
+                        _ => return Err(Error::Protocol("Expected PUBREL packet".to_string())),
+                    }
+                }
+                _ => {}
+            }
         }
 
         Ok(())
@@ -457,9 +491,45 @@ impl ServerConnection {
     }
 
     fn topic_matches(filter: &str, topic: &str) -> bool {
-        // Simple wildcard matching for now
-        // TODO: Implement proper MQTT topic matching
-        filter == topic || filter.ends_with("/#") && topic.starts_with(&filter[..filter.len()-2])
+        // MQTT topic matching with wildcards
+        let filter_parts: Vec<&str> = filter.split('/').collect();
+        let topic_parts: Vec<&str> = topic.split('/').collect();
+        
+        let mut filter_idx = 0;
+        let mut topic_idx = 0;
+        
+        while filter_idx < filter_parts.len() && topic_idx < topic_parts.len() {
+            let filter_part = filter_parts[filter_idx];
+            let topic_part = topic_parts[topic_idx];
+            
+            if filter_part == "#" {
+                // Multi-level wildcard - matches everything
+                return true;
+            } else if filter_part == "+" {
+                // Single-level wildcard - matches any single level
+                filter_idx += 1;
+                topic_idx += 1;
+            } else if filter_part == topic_part {
+                // Exact match
+                filter_idx += 1;
+                topic_idx += 1;
+            } else {
+                // No match
+                return false;
+            }
+        }
+        
+        // Check if we've processed all parts
+        if filter_idx == filter_parts.len() && topic_idx == topic_parts.len() {
+            return true;
+        }
+        
+        // Handle trailing # wildcard
+        if filter_idx == filter_parts.len() - 1 && filter_parts[filter_idx] == "#" {
+            return true;
+        }
+        
+        false
     }
 
     async fn send_connack(&mut self, return_code: ConnectReturnCode, session_present: bool) -> Result<()> {
@@ -550,6 +620,50 @@ impl ServerConnection {
         self.write_all(&data).await
     }
 
+    async fn send_pubrec(&mut self, packet_id: u16) -> Result<()> {
+        let pubrec = PubRecPacket {
+            packet_id,
+            reason_code: None,
+            properties: None,
+        };
+
+        let packet = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::PubRec,
+                dup: false,
+                qos: 0,
+                retain: false,
+                remaining_length: 0,
+            },
+            payload: PacketPayload::PubRec(pubrec),
+        };
+
+        let data = self.codec.encode(&packet)?;
+        self.write_all(&data).await
+    }
+
+    async fn send_pubcomp(&mut self, packet_id: u16) -> Result<()> {
+        let pubcomp = PubCompPacket {
+            packet_id,
+            reason_code: None,
+            properties: None,
+        };
+
+        let packet = Packet {
+            header: PacketHeader {
+                packet_type: PacketType::PubComp,
+                dup: false,
+                qos: 0,
+                retain: false,
+                remaining_length: 0,
+            },
+            payload: PacketPayload::PubComp(pubcomp),
+        };
+
+        let data = self.codec.encode(&packet)?;
+        self.write_all(&data).await
+    }
+
     async fn send_pingresp(&mut self) -> Result<()> {
         let packet = Packet {
             header: PacketHeader {
@@ -576,7 +690,7 @@ impl ServerConnection {
             // Read more data from the stream
             let mut buf = vec![0u8; 1024];
             let n = self.stream.read(&mut buf).await
-                .map_err(|e| Error::Io(e))?;
+                .map_err(Error::Io)?;
 
             if n == 0 {
                 return Err(Error::Disconnected);
@@ -587,8 +701,201 @@ impl ServerConnection {
     }
 
     async fn write_all(&mut self, data: &[u8]) -> Result<()> {
-        self.stream.write_all(data).await.map_err(|e| Error::Io(e))?;
-        self.stream.flush().await.map_err(|e| Error::Io(e))?;
+        self.stream.write_all(data).await.map_err(Error::Io)?;
+        self.stream.flush().await.map_err(Error::Io)?;
         Ok(())
+    }
+} 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::protocol::QoS;
+
+    #[test]
+    fn test_server_config_new() {
+        let config = ServerConfig::new("127.0.0.1:1883");
+        assert_eq!(config.bind_addr, "127.0.0.1:1883");
+        assert_eq!(config.max_connections, 1000);
+        assert_eq!(config.max_packet_size, 1024 * 1024);
+        assert_eq!(config.protocol_version, 4);
+        assert_eq!(config.allow_anonymous, true);
+        assert!(config.authentication.is_none());
+    }
+
+    #[test]
+    fn test_server_config_builder_pattern() {
+        let config = ServerConfig::new("localhost:1883")
+            .max_connections(500)
+            .max_packet_size(512 * 1024)
+            .protocol_version(5)
+            .allow_anonymous(false);
+
+        assert_eq!(config.max_connections, 500);
+        assert_eq!(config.max_packet_size, 512 * 1024);
+        assert_eq!(config.protocol_version, 5);
+        assert_eq!(config.allow_anonymous, false);
+    }
+
+    #[test]
+    fn test_server_config_clone() {
+        let config1 = ServerConfig::new("127.0.0.1:1883");
+        let config2 = config1.clone();
+        assert_eq!(config1.bind_addr, config2.bind_addr);
+        assert_eq!(config1.max_connections, config2.max_connections);
+    }
+
+    #[test]
+    fn test_authentication_new() {
+        let auth = Authentication::new();
+        assert!(auth.users.is_empty());
+    }
+
+    #[test]
+    fn test_authentication_add_user() {
+        let auth = Authentication::new()
+            .add_user("user1", "pass1")
+            .add_user("user2", "pass2");
+
+        assert_eq!(auth.users.len(), 2);
+        assert_eq!(auth.users.get("user1"), Some(&"pass1".to_string()));
+        assert_eq!(auth.users.get("user2"), Some(&"pass2".to_string()));
+    }
+
+    #[test]
+    fn test_authentication_authenticate() {
+        let auth = Authentication::new()
+            .add_user("user1", "pass1");
+
+        assert!(auth.authenticate("user1", "pass1"));
+        assert!(!auth.authenticate("user1", "wrong_pass"));
+        assert!(!auth.authenticate("unknown_user", "pass1"));
+    }
+
+    #[test]
+    fn test_authentication_clone() {
+        let auth1 = Authentication::new().add_user("user1", "pass1");
+        let auth2 = auth1.clone();
+        assert_eq!(auth1.users.len(), auth2.users.len());
+        assert_eq!(auth1.authenticate("user1", "pass1"), auth2.authenticate("user1", "pass1"));
+    }
+
+    #[test]
+    fn test_session_new() {
+        let session = Session::new("client1".to_string(), Some("user1".to_string()), true);
+        assert_eq!(session.client_id, "client1");
+        assert_eq!(session.username, Some("user1".to_string()));
+        assert_eq!(session.clean_session, true);
+        assert!(session.subscriptions.is_empty());
+        assert!(session.pending_messages.is_empty());
+    }
+
+    #[test]
+    fn test_session_add_subscription() {
+        let mut session = Session::new("client1".to_string(), None, false);
+        session.subscriptions.insert("topic1".to_string(), QoS::AtLeastOnce);
+        session.subscriptions.insert("topic2".to_string(), QoS::ExactlyOnce);
+
+        assert_eq!(session.subscriptions.len(), 2);
+        assert_eq!(session.subscriptions.get("topic1"), Some(&QoS::AtLeastOnce));
+        assert_eq!(session.subscriptions.get("topic2"), Some(&QoS::ExactlyOnce));
+    }
+
+    #[test]
+    fn test_session_clone() {
+        let session1 = Session::new("client1".to_string(), Some("user1".to_string()), true);
+        let session2 = session1.clone();
+        assert_eq!(session1.client_id, session2.client_id);
+        assert_eq!(session1.username, session2.username);
+        assert_eq!(session1.clean_session, session2.clean_session);
+    }
+
+    #[test]
+    fn test_subscription_new() {
+        let subscription = Subscription::new("client1".to_string(), "topic1".to_string(), QoS::AtMostOnce);
+        assert_eq!(subscription.client_id, "client1");
+        assert_eq!(subscription.topic_filter, "topic1");
+        assert_eq!(subscription.qos, QoS::AtMostOnce);
+    }
+
+    #[test]
+    fn test_subscription_clone() {
+        let sub1 = Subscription::new("client1".to_string(), "topic1".to_string(), QoS::AtLeastOnce);
+        let sub2 = sub1.clone();
+        assert_eq!(sub1.client_id, sub2.client_id);
+        assert_eq!(sub1.topic_filter, sub2.topic_filter);
+        assert_eq!(sub1.qos, sub2.qos);
+    }
+
+    #[test]
+    fn test_server_new() {
+        let config = ServerConfig::new("127.0.0.1:1883");
+        let server = Server::new(config);
+        assert!(server.listener.is_none());
+        // Note: We can't test async operations in sync tests
+        // The server is created successfully
+    }
+
+    #[test]
+    fn test_topic_matches() {
+        // Exact match
+        assert!(ServerConnection::topic_matches("home/temp", "home/temp"));
+        
+        // Single level wildcard
+        assert!(ServerConnection::topic_matches("home/+/temp", "home/living/temp"));
+        assert!(ServerConnection::topic_matches("home/+/temp", "home/bedroom/temp"));
+        assert!(!ServerConnection::topic_matches("home/+/temp", "home/living/bedroom/temp"));
+        
+        // Multi-level wildcard
+        assert!(ServerConnection::topic_matches("home/#", "home/living/temp"));
+        assert!(ServerConnection::topic_matches("home/#", "home/bedroom/humidity"));
+        assert!(ServerConnection::topic_matches("home/#", "home"));
+        assert!(!ServerConnection::topic_matches("home/#", "office/temp"));
+        
+        // Edge cases
+        assert!(ServerConnection::topic_matches("#", "any/topic"));
+        assert!(ServerConnection::topic_matches("+", "single"));
+        assert!(!ServerConnection::topic_matches("home/+/temp", "home/temp"));
+    }
+
+    #[test]
+    fn test_qos_handling_in_subscription() {
+        let subscription1 = Subscription::new("client1".to_string(), "topic1".to_string(), QoS::AtMostOnce);
+        let subscription2 = Subscription::new("client2".to_string(), "topic2".to_string(), QoS::AtLeastOnce);
+        let subscription3 = Subscription::new("client3".to_string(), "topic3".to_string(), QoS::ExactlyOnce);
+
+        assert_eq!(subscription1.qos, QoS::AtMostOnce);
+        assert_eq!(subscription2.qos, QoS::AtLeastOnce);
+        assert_eq!(subscription3.qos, QoS::ExactlyOnce);
+    }
+
+    #[test]
+    fn test_qos_handling_in_session() {
+        let mut session = Session::new("client1".to_string(), None, false);
+        
+        // Add subscriptions with different QoS levels
+        session.subscriptions.insert("topic1".to_string(), QoS::AtMostOnce);
+        session.subscriptions.insert("topic2".to_string(), QoS::AtLeastOnce);
+        session.subscriptions.insert("topic3".to_string(), QoS::ExactlyOnce);
+
+        assert_eq!(session.subscriptions.len(), 3);
+        assert_eq!(session.subscriptions.get("topic1"), Some(&QoS::AtMostOnce));
+        assert_eq!(session.subscriptions.get("topic2"), Some(&QoS::AtLeastOnce));
+        assert_eq!(session.subscriptions.get("topic3"), Some(&QoS::ExactlyOnce));
+    }
+
+    #[test]
+    fn test_qos_enum_values() {
+        assert_eq!(QoS::AtMostOnce as u8, 0);
+        assert_eq!(QoS::AtLeastOnce as u8, 1);
+        assert_eq!(QoS::ExactlyOnce as u8, 2);
+    }
+
+    #[test]
+    fn test_qos_from_u8() {
+        assert_eq!(QoS::from_u8(0), Some(QoS::AtMostOnce));
+        assert_eq!(QoS::from_u8(1), Some(QoS::AtLeastOnce));
+        assert_eq!(QoS::from_u8(2), Some(QoS::ExactlyOnce));
+        assert_eq!(QoS::from_u8(3), None);
     }
 } 
