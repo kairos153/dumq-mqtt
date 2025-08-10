@@ -12,7 +12,7 @@ A comprehensive MQTT protocol library for Rust supporting both MQTT 3.1.1 and MQ
 - **Authentication**: Username/password authentication support
 - **Session Management**: Persistent and clean session support
 - **Topic Filtering**: Wildcard topic support (# and +)
-- **Retained Messages**: Support for retained messages (planned)
+- **Retained Messages**: Full support for retained messages with automatic delivery to new subscribers
 - **Will Messages**: Last Will and Testament support
 - **Keep Alive**: Automatic keep-alive mechanism
 
@@ -67,6 +67,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### Retain Message Example
+
+```rust
+use dumq_mqtt::client::{Client, ClientConfig};
+use dumq_mqtt::protocol::{ConnectOptions, QoS, PublishOptions};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = ClientConfig::new("localhost:1883")
+        .protocol_version(4);
+
+    let client = Client::new(config);
+    let mut client = client.connect(ConnectOptions::new("my_client").clean_session(true)).await?;
+
+    // Publish a retained message
+    let publish_options = PublishOptions::new("status/device1", "Online")
+        .qos(QoS::AtLeastOnce)
+        .retain(true);
+    
+    client.publish(publish_options).await?;
+
+    // Subscribe to receive retained messages
+    client.subscribe("status/+", QoS::AtLeastOnce).await?;
+
+    while let Some(message) = client.recv().await? {
+        if message.retain {
+            println!("Received retained message: {}", String::from_utf8_lossy(&message.payload));
+        }
+    }
+
+    Ok(())
+}
+```
+
 ### Server Example
 
 ```rust
@@ -101,6 +135,9 @@ cargo run --example client_example
 
 # Server example
 cargo run --example server_example
+
+# Retain message example
+cargo run --example retain_message_example
 ```
 
 ## Protocol Support
@@ -118,6 +155,7 @@ cargo run --example server_example
 - ✅ Clean Session
 - ✅ Keep Alive
 - ✅ Will Messages
+- ✅ Retained Messages
 
 ### MQTT 5.0 (In Progress)
 

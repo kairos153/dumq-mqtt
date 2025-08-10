@@ -260,7 +260,7 @@ impl ServerConnection {
     async fn handle_packet(&mut self, packet: Packet) -> Result<()> {
         match packet.payload {
             PacketPayload::Connect(connect) => self.handle_connect(connect).await,
-            PacketPayload::Publish(publish) => self.handle_publish(publish).await,
+            PacketPayload::Publish(publish) => self.handle_publish(publish, &packet.header).await,
             PacketPayload::Subscribe(subscribe) => self.handle_subscribe(subscribe).await,
             PacketPayload::Unsubscribe(unsubscribe) => self.handle_unsubscribe(unsubscribe).await,
             PacketPayload::PingReq => self.handle_pingreq().await,
@@ -323,32 +323,35 @@ impl ServerConnection {
         self.send_connack(ConnectReturnCode::Accepted, session_present).await
     }
 
-    async fn handle_publish(&mut self, publish: PublishPacket) -> Result<()> {
+    async fn handle_publish(&mut self, publish: PublishPacket, header: &PacketHeader) -> Result<()> {
         info!("Handling PUBLISH to topic: {}", publish.topic_name);
 
-        // Determine QoS level from packet header or packet_id presence
-        let qos_level = if publish.packet_id.is_some() {
-            // For now, assume QoS 1 if packet_id is present
-            // In a real implementation, this should come from the packet header
-            1
-        } else {
-            0
-        };
+        // Get QoS level and retain flag from the packet header
+        let qos_level = header.qos as u8;
+        let retain_flag = header.retain;
 
         // Create message
         let message = Message {
             topic: publish.topic_name.clone(),
             payload: publish.payload.clone(),
             qos: qos_level,
-            retain: false, // TODO: Handle retain flag
-            dup: false,
+            retain: retain_flag,
+            dup: header.dup,
             packet_id: publish.packet_id,
         };
 
         // Handle retained message
-        if false { // TODO: Check retain flag
+        if retain_flag {
             let mut retained = self.retained_messages.write().await;
-            retained.insert(publish.topic_name.clone(), message.clone());
+            if publish.payload.is_empty() {
+                // Empty payload with retain flag means clear the retained message
+                retained.remove(&publish.topic_name);
+                info!("Cleared retained message for topic: {}", publish.topic_name);
+            } else {
+                // Store the retained message
+                retained.insert(publish.topic_name.clone(), message.clone());
+                info!("Stored retained message for topic: {}", publish.topic_name);
+            }
         }
 
         // Publish to subscribers
@@ -425,7 +428,12 @@ impl ServerConnection {
         }
 
         // Send SUBACK
-        self.send_suback(subscribe.packet_id, return_codes).await
+        self.send_suback(subscribe.packet_id, return_codes).await?;
+
+        // Send retained messages for matching topics
+        self.send_retained_messages(&subscribe.topic_filters).await?;
+
+        Ok(())
     }
 
     async fn handle_unsubscribe(&mut self, unsubscribe: UnsubscribePacket) -> Result<()> {
@@ -680,6 +688,66 @@ impl ServerConnection {
         self.write_all(&data).await
     }
 
+    /// Send retained messages for matching topic filters to the client
+    async fn send_retained_messages(&mut self, topic_filters: &[TopicFilter]) -> Result<()> {
+        // Collect retained messages to send to avoid borrowing issues
+        let mut messages_to_send = Vec::new();
+        
+        {
+            let retained = self.retained_messages.read().await;
+            
+            for topic_filter in topic_filters {
+                for (topic, message) in retained.iter() {
+                    if Self::topic_matches(&topic_filter.topic, topic) {
+                        info!("Sending retained message for topic '{}' to client '{}'", 
+                              topic, self.client_id.as_ref().unwrap_or(&"unknown".to_string()));
+                        
+                        messages_to_send.push((message.topic.clone(), message.payload.clone(), message.qos));
+                    }
+                }
+            }
+        }
+        
+        // Now send the messages without holding the read lock
+        for (topic, payload, qos) in messages_to_send {
+            // Create a publish packet for the retained message
+            let publish = PublishPacket {
+                topic_name: topic,
+                packet_id: if qos > 0 { Some(self.next_packet_id()) } else { None },
+                payload,
+                properties: None, // No MQTT 5.0 properties for now
+            };
+
+            let packet = Packet {
+                header: PacketHeader {
+                    packet_type: PacketType::Publish,
+                    dup: false,
+                    qos,
+                    retain: true, // Mark as retained
+                    remaining_length: 0, // Will be calculated by encoder
+                },
+                payload: PacketPayload::Publish(publish),
+            };
+
+            let data = self.codec.encode(&packet)?;
+            self.write_all(&data).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Get next packet ID for QoS 1 and 2 messages
+    fn next_packet_id(&mut self) -> u16 {
+        static mut COUNTER: u16 = 0;
+        unsafe {
+            COUNTER = COUNTER.wrapping_add(1);
+            if COUNTER == 0 {
+                COUNTER = 1;
+            }
+            COUNTER
+        }
+    }
+
     async fn read_packet(&mut self) -> Result<Packet> {
         loop {
             // Try to decode a packet from the buffer
@@ -897,5 +965,44 @@ mod tests {
         assert_eq!(QoS::from_u8(1), Some(QoS::AtLeastOnce));
         assert_eq!(QoS::from_u8(2), Some(QoS::ExactlyOnce));
         assert_eq!(QoS::from_u8(3), None);
+    }
+
+    #[test]
+    fn test_retained_message_storage() {
+        use tokio::sync::RwLock;
+        use std::collections::HashMap;
+        use std::sync::Arc;
+        
+        let retained_messages = Arc::new(RwLock::new(HashMap::new()));
+        
+        // Test that retained messages can be stored and retrieved
+        tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let mut retained = retained_messages.write().await;
+            let message = Message {
+                topic: "test/topic".to_string(),
+                payload: bytes::Bytes::from("test message"),
+                qos: 0,
+                retain: true,
+                dup: false,
+                packet_id: None,
+            };
+            
+            retained.insert("test/topic".to_string(), message);
+            assert!(retained.contains_key("test/topic"));
+            
+            let stored_message = retained.get("test/topic").unwrap();
+            assert_eq!(stored_message.topic, "test/topic");
+            assert_eq!(stored_message.payload, bytes::Bytes::from("test message"));
+            assert!(stored_message.retain);
+        });
+    }
+
+    #[test]
+    fn test_topic_matching_for_retained_messages() {
+        // Test that topic matching works correctly for retained messages
+        assert!(ServerConnection::topic_matches("test/+", "test/hello"));
+        assert!(ServerConnection::topic_matches("test/#", "test/hello/world"));
+        assert!(ServerConnection::topic_matches("test/topic", "test/topic"));
+        assert!(!ServerConnection::topic_matches("test/topic", "other/topic"));
     }
 } 

@@ -235,6 +235,7 @@ pub struct AuthPacket {
 }
 
 // MQTT 5.0 Properties
+/// Connect properties for MQTT 5.0
 #[derive(Debug, Clone)]
 pub struct ConnectProperties {
     pub session_expiry_interval: Option<u32>,
@@ -246,6 +247,22 @@ pub struct ConnectProperties {
     pub user_properties: HashMap<String, String>,
     pub authentication_method: Option<String>,
     pub authentication_data: Option<Bytes>,
+}
+
+impl Default for ConnectProperties {
+    fn default() -> Self {
+        Self {
+            session_expiry_interval: None,
+            receive_maximum: None,
+            max_packet_size: None,
+            topic_alias_maximum: None,
+            request_response_information: None,
+            request_problem_information: None,
+            user_properties: HashMap::new(),
+            authentication_method: None,
+            authentication_data: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

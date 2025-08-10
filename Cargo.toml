@@ -28,6 +28,10 @@ path = "examples/client_example.rs"
 name = "server_example"
 path = "examples/server_example.rs"
 
+[[example]]
+name = "retain_message_example"
+path = "examples/retain_message_example.rs"
+
 [lib]
 name = "dumq_mqtt"
 path = "src/lib.rs"

@@ -1,4 +1,5 @@
-use crate::types::{TopicFilter};
+use crate::types::{TopicFilter, ConnectProperties};
+use bytes::Bytes;
 use std::time::Duration;
 
 /// Quality of Service levels
@@ -47,6 +48,7 @@ pub struct ConnectOptions {
     pub will_qos: QoS,
     pub will_retain: bool,
     pub protocol_version: u8,
+    pub properties: Option<ConnectProperties>,
 }
 
 impl ConnectOptions {
@@ -62,6 +64,7 @@ impl ConnectOptions {
             will_qos: QoS::AtMostOnce,
             will_retain: false,
             protocol_version: 4, // MQTT 3.1.1
+            properties: None,
         }
     }
 
@@ -95,6 +98,115 @@ impl ConnectOptions {
 
     pub fn protocol_version(mut self, version: u8) -> Self {
         self.protocol_version = version;
+        self
+    }
+
+    // MQTT 5.0 Properties
+    pub fn session_expiry_interval(mut self, interval: u32) -> Self {
+        if self.protocol_version == 5 {
+            if self.properties.is_none() {
+                self.properties = Some(ConnectProperties::default());
+            }
+            if let Some(ref mut props) = self.properties {
+                props.session_expiry_interval = Some(interval);
+            }
+        }
+        self
+    }
+
+    pub fn receive_maximum(mut self, max: u16) -> Self {
+        if self.protocol_version == 5 {
+            if self.properties.is_none() {
+                self.properties = Some(ConnectProperties::default());
+            }
+            if let Some(ref mut props) = self.properties {
+                props.receive_maximum = Some(max);
+            }
+        }
+        self
+    }
+
+    pub fn max_packet_size(mut self, size: u32) -> Self {
+        if self.protocol_version == 5 {
+            if self.properties.is_none() {
+                self.properties = Some(ConnectProperties::default());
+            }
+            if let Some(ref mut props) = self.properties {
+                props.max_packet_size = Some(size);
+            }
+        }
+        self
+    }
+
+    pub fn topic_alias_maximum(mut self, max: u16) -> Self {
+        if self.protocol_version == 5 {
+            if self.properties.is_none() {
+                self.properties = Some(ConnectProperties::default());
+            }
+            if let Some(ref mut props) = self.properties {
+                props.topic_alias_maximum = Some(max);
+            }
+        }
+        self
+    }
+
+    pub fn request_response_information(mut self, request: bool) -> Self {
+        if self.protocol_version == 5 {
+            if self.properties.is_none() {
+                self.properties = Some(ConnectProperties::default());
+            }
+            if let Some(ref mut props) = self.properties {
+                props.request_response_information = Some(request);
+            }
+        }
+        self
+    }
+
+    pub fn request_problem_information(mut self, request: bool) -> Self {
+        if self.protocol_version == 5 {
+            if self.properties.is_none() {
+                self.properties = Some(ConnectProperties::default());
+            }
+            if let Some(ref mut props) = self.properties {
+                props.request_problem_information = Some(request);
+            }
+        }
+        self
+    }
+
+    pub fn user_property(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        if self.protocol_version == 5 {
+            if self.properties.is_none() {
+                self.properties = Some(ConnectProperties::default());
+            }
+            if let Some(ref mut props) = self.properties {
+                props.user_properties.insert(key.into(), value.into());
+            }
+        }
+        self
+    }
+
+    pub fn authentication_method(mut self, method: impl Into<String>) -> Self {
+        if self.protocol_version == 5 {
+            if self.properties.is_none() {
+                self.properties = Some(ConnectProperties::default());
+            }
+            if let Some(ref mut props) = self.properties {
+                props.authentication_method = Some(method.into());
+            }
+        }
+        self
+    }
+
+    pub fn authentication_data(mut self, data: impl Into<Vec<u8>>) -> Self {
+        if self.protocol_version == 5 {
+            if self.properties.is_none() {
+                self.properties = Some(ConnectProperties::default());
+            }
+            if let Some(ref mut props) = self.properties {
+                props.authentication_data = Some(Bytes::from(data.into()));
+            }
+        }
         self
     }
 }
@@ -345,6 +457,7 @@ mod tests {
         assert_eq!(options.will_qos, QoS::AtMostOnce);
         assert_eq!(options.will_retain, false);
         assert_eq!(options.protocol_version, 4);
+        assert!(options.properties.is_none());
     }
 
     #[test]
@@ -355,7 +468,16 @@ mod tests {
             .username("test_user")
             .password("test_pass")
             .will("test/will", b"will message", QoS::AtLeastOnce, true)
-            .protocol_version(5);
+            .protocol_version(5)
+            .session_expiry_interval(3600)
+            .receive_maximum(100)
+            .max_packet_size(1_000_000)
+            .topic_alias_maximum(20)
+            .request_response_information(true)
+            .request_problem_information(false)
+            .user_property("test_key", "test_value")
+            .authentication_method("test_method")
+            .authentication_data(b"test_data");
 
         assert_eq!(options.client_id, "test_client");
         assert_eq!(options.clean_session, false);
@@ -367,6 +489,15 @@ mod tests {
         assert_eq!(options.will_qos, QoS::AtLeastOnce);
         assert_eq!(options.will_retain, true);
         assert_eq!(options.protocol_version, 5);
+        assert_eq!(options.properties.as_ref().unwrap().session_expiry_interval, Some(3600));
+        assert_eq!(options.properties.as_ref().unwrap().receive_maximum, Some(100));
+        assert_eq!(options.properties.as_ref().unwrap().max_packet_size, Some(1_000_000));
+        assert_eq!(options.properties.as_ref().unwrap().topic_alias_maximum, Some(20));
+        assert_eq!(options.properties.as_ref().unwrap().request_response_information, Some(true));
+        assert_eq!(options.properties.as_ref().unwrap().request_problem_information, Some(false));
+        assert_eq!(options.properties.as_ref().unwrap().user_properties.get("test_key"), Some(&"test_value".to_string()));
+        assert_eq!(options.properties.as_ref().unwrap().authentication_method, Some("test_method".to_string()));
+        assert_eq!(options.properties.as_ref().unwrap().authentication_data.as_ref().unwrap(), &Bytes::from(&b"test_data"[..]));
     }
 
     #[test]
@@ -379,6 +510,7 @@ mod tests {
         assert_eq!(options.client_id, cloned_options.client_id);
         assert_eq!(options.username, cloned_options.username);
         assert_eq!(options.password, cloned_options.password);
+        assert_eq!(options.properties.is_some(), cloned_options.properties.is_some());
     }
 
     #[test]
@@ -390,6 +522,7 @@ mod tests {
         assert_eq!(options.client_id, "");
         assert_eq!(options.username, Some("".to_string()));
         assert_eq!(options.password, Some("".to_string()));
+        assert!(options.properties.is_none());
     }
 
     #[test]
@@ -401,6 +534,7 @@ mod tests {
         assert_eq!(options.client_id, "한국어_클라이언트");
         assert_eq!(options.username, Some("한국어_사용자".to_string()));
         assert_eq!(options.password, Some("한국어_비밀번호".to_string()));
+        assert!(options.properties.is_none());
     }
 
     #[test]
