@@ -1,6 +1,39 @@
 use bytes::{Bytes};
 use std::collections::HashMap;
 
+// MQTT v5 Property Identifiers
+pub const PROPERTY_PAYLOAD_FORMAT_INDICATOR: u8 = 0x01;
+pub const PROPERTY_MESSAGE_EXPIRY_INTERVAL: u8 = 0x02;
+pub const PROPERTY_CONTENT_TYPE: u8 = 0x03;
+pub const PROPERTY_RESPONSE_TOPIC: u8 = 0x08;
+pub const PROPERTY_CORRELATION_DATA: u8 = 0x09;
+pub const PROPERTY_SUBSCRIPTION_IDENTIFIER: u8 = 0x0B;
+pub const PROPERTY_SESSION_EXPIRY_INTERVAL: u8 = 0x11;
+pub const PROPERTY_ASSIGNED_CLIENT_IDENTIFIER: u8 = 0x12;
+pub const PROPERTY_SERVER_KEEP_ALIVE: u8 = 0x13;
+pub const PROPERTY_AUTHENTICATION_METHOD: u8 = 0x15;
+pub const PROPERTY_AUTHENTICATION_DATA: u8 = 0x16;
+pub const PROPERTY_REQUEST_PROBLEM_INFORMATION: u8 = 0x17;
+pub const PROPERTY_WILL_DELAY_INTERVAL: u8 = 0x18;
+pub const PROPERTY_REQUEST_RESPONSE_INFORMATION: u8 = 0x19;
+pub const PROPERTY_RESPONSE_INFORMATION: u8 = 0x1A;
+pub const PROPERTY_SERVER_REFERENCE: u8 = 0x1C;
+pub const PROPERTY_REASON_STRING: u8 = 0x1F;
+pub const PROPERTY_RECEIVE_MAXIMUM: u8 = 0x21;
+pub const PROPERTY_TOPIC_ALIAS_MAXIMUM: u8 = 0x22;
+pub const PROPERTY_TOPIC_ALIAS: u8 = 0x23;
+pub const PROPERTY_MAXIMUM_QOS: u8 = 0x24;
+pub const PROPERTY_RETAIN_AVAILABLE: u8 = 0x25;
+pub const PROPERTY_USER_PROPERTY: u8 = 0x26;
+pub const PROPERTY_MAXIMUM_PACKET_SIZE: u8 = 0x27;
+pub const PROPERTY_WILDCARD_SUBSCRIPTION_AVAILABLE: u8 = 0x28;
+pub const PROPERTY_SUBSCRIPTION_IDENTIFIERS_AVAILABLE: u8 = 0x29;
+pub const PROPERTY_SHARED_SUBSCRIPTION_AVAILABLE: u8 = 0x2A;
+
+// MQTT v5 Payload Format Indicator values
+pub const PAYLOAD_FORMAT_INDICATOR_UNSPECIFIED: u8 = 0x00;
+pub const PAYLOAD_FORMAT_INDICATOR_UTF8: u8 = 0x01;
+
 /// MQTT packet types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PacketType {
@@ -265,6 +298,138 @@ pub struct PublishPacket {
     pub payload: Bytes,
     // MQTT 5.0 properties
     pub properties: Option<PublishProperties>,
+}
+
+impl PublishPacket {
+    /// Create a new PublishPacket
+    pub fn new(topic_name: String, payload: Bytes) -> Self {
+        Self {
+            topic_name,
+            packet_id: None,
+            payload,
+            properties: None,
+        }
+    }
+
+    /// Create a new PublishPacket with QoS and packet ID
+    pub fn with_qos(topic_name: String, payload: Bytes, qos: u8, packet_id: u16) -> Self {
+        Self {
+            topic_name,
+            packet_id: if qos > 0 { Some(packet_id) } else { None },
+            payload,
+            properties: None,
+        }
+    }
+
+    /// Set the packet ID
+    pub fn packet_id(mut self, id: u16) -> Self {
+        self.packet_id = Some(id);
+        self
+    }
+
+    /// Set the properties
+    pub fn properties(mut self, properties: PublishProperties) -> Self {
+        self.properties = Some(properties);
+        self
+    }
+
+    /// Set payload format indicator
+    pub fn payload_format_indicator(mut self, indicator: u8) -> Self {
+        if self.properties.is_none() {
+            self.properties = Some(PublishProperties::new());
+        }
+        if let Some(props) = &mut self.properties {
+            *props = props.clone().payload_format_indicator(indicator);
+        }
+        self
+    }
+
+    /// Set message expiry interval
+    pub fn message_expiry_interval(mut self, interval: u32) -> Self {
+        if self.properties.is_none() {
+            self.properties = Some(PublishProperties::new());
+        }
+        if let Some(props) = &mut self.properties {
+            *props = props.clone().message_expiry_interval(interval);
+        }
+        self
+    }
+
+    /// Set topic alias
+    pub fn topic_alias(mut self, alias: u16) -> Self {
+        if self.properties.is_none() {
+            self.properties = Some(PublishProperties::new());
+        }
+        if let Some(props) = &mut self.properties {
+            *props = props.clone().topic_alias(alias);
+        }
+        self
+    }
+
+    /// Set response topic
+    pub fn response_topic(mut self, topic: String) -> Self {
+        if self.properties.is_none() {
+            self.properties = Some(PublishProperties::new());
+        }
+        if let Some(props) = &mut self.properties {
+            *props = props.clone().response_topic(topic);
+        }
+        self
+    }
+
+    /// Set correlation data
+    pub fn correlation_data(mut self, data: Bytes) -> Self {
+        if self.properties.is_none() {
+            self.properties = Some(PublishProperties::new());
+        }
+        if let Some(props) = &mut self.properties {
+            *props = props.clone().correlation_data(data);
+        }
+        self
+    }
+
+    /// Set subscription identifier
+    pub fn subscription_identifier(mut self, id: u32) -> Self {
+        if self.properties.is_none() {
+            self.properties = Some(PublishProperties::new());
+        }
+        if let Some(props) = &mut self.properties {
+            *props = props.clone().subscription_identifier(id);
+        }
+        self
+    }
+
+    /// Set content type
+    pub fn content_type(mut self, content_type: String) -> Self {
+        if self.properties.is_none() {
+            self.properties = Some(PublishProperties::new());
+        }
+        if let Some(props) = &mut self.properties {
+            *props = props.clone().content_type(content_type);
+        }
+        self
+    }
+
+    /// Add user property
+    pub fn user_property(mut self, key: String, value: String) -> Self {
+        if self.properties.is_none() {
+            self.properties = Some(PublishProperties::new());
+        }
+        if let Some(props) = &mut self.properties {
+            *props = props.clone().user_property(key, value);
+        }
+        self
+    }
+
+    /// Check if the packet has any properties
+    pub fn has_properties(&self) -> bool {
+        self.properties.as_ref().map_or(false, |p| !p.is_empty())
+    }
+
+    /// Get QoS level (0 if no packet_id, 1 or 2 if packet_id exists)
+    pub fn qos(&self) -> u8 {
+        if self.packet_id.is_some() { 1 } else { 0 }
+    }
 }
 
 /// Publish acknowledgment packet
@@ -571,6 +736,107 @@ pub struct PublishProperties {
     pub user_properties: HashMap<String, String>,
     pub subscription_identifier: Option<u32>,
     pub content_type: Option<String>,
+}
+
+impl Default for PublishProperties {
+    fn default() -> Self {
+        Self {
+            payload_format_indicator: None,
+            message_expiry_interval: None,
+            topic_alias: None,
+            response_topic: None,
+            correlation_data: None,
+            user_properties: HashMap::new(),
+            subscription_identifier: None,
+            content_type: None,
+        }
+    }
+}
+
+impl PublishProperties {
+    /// Create a new empty PublishProperties
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the payload format indicator
+    pub fn payload_format_indicator(mut self, indicator: u8) -> Self {
+        self.payload_format_indicator = Some(indicator);
+        self
+    }
+
+    /// Set the message expiry interval in seconds
+    pub fn message_expiry_interval(mut self, interval: u32) -> Self {
+        self.message_expiry_interval = Some(interval);
+        self
+    }
+
+    /// Set the topic alias
+    pub fn topic_alias(mut self, alias: u16) -> Self {
+        self.topic_alias = Some(alias);
+        self
+    }
+
+    /// Set the response topic
+    pub fn response_topic(mut self, topic: String) -> Self {
+        self.response_topic = Some(topic);
+        self
+    }
+
+    /// Set the correlation data
+    pub fn correlation_data(mut self, data: Bytes) -> Self {
+        self.correlation_data = Some(data);
+        self
+    }
+
+    /// Set the subscription identifier
+    pub fn subscription_identifier(mut self, id: u32) -> Self {
+        self.subscription_identifier = Some(id);
+        self
+    }
+
+    /// Set the content type
+    pub fn content_type(mut self, content_type: String) -> Self {
+        self.content_type = Some(content_type);
+        self
+    }
+
+    /// Add a user property
+    pub fn user_property(mut self, key: String, value: String) -> Self {
+        self.user_properties.insert(key, value);
+        self
+    }
+
+    /// Check if all properties are None/empty
+    pub fn is_empty(&self) -> bool {
+        self.payload_format_indicator.is_none() &&
+        self.message_expiry_interval.is_none() &&
+        self.topic_alias.is_none() &&
+        self.response_topic.is_none() &&
+        self.correlation_data.is_none() &&
+        self.user_properties.is_empty() &&
+        self.subscription_identifier.is_none() &&
+        self.content_type.is_none()
+    }
+
+    /// Get the payload format indicator as a string
+    pub fn payload_format_indicator_str(&self) -> Option<&'static str> {
+        match self.payload_format_indicator {
+            Some(PAYLOAD_FORMAT_INDICATOR_UNSPECIFIED) => Some("Unspecified"),
+            Some(PAYLOAD_FORMAT_INDICATOR_UTF8) => Some("UTF-8"),
+            _ => None,
+        }
+    }
+
+    /// Check if the payload is UTF-8 encoded
+    pub fn is_utf8_payload(&self) -> bool {
+        self.payload_format_indicator == Some(PAYLOAD_FORMAT_INDICATOR_UTF8)
+    }
+
+    /// Check if the payload format is unspecified
+    pub fn is_unspecified_payload(&self) -> bool {
+        self.payload_format_indicator == Some(PAYLOAD_FORMAT_INDICATOR_UNSPECIFIED)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1039,28 +1305,150 @@ mod tests {
 
     #[test]
     fn test_publish_properties() {
-        let mut user_properties = HashMap::new();
-        user_properties.insert("content-type".to_string(), "text/plain".to_string());
+        let mut props = PublishProperties::new();
+        assert!(props.is_empty());
 
-        let properties = PublishProperties {
-            payload_format_indicator: Some(1),
-            message_expiry_interval: Some(86400),
-            topic_alias: Some(5),
-            response_topic: Some("response/topic".to_string()),
-            correlation_data: Some(Bytes::from("correlation_id")),
-            user_properties: user_properties.clone(),
-            subscription_identifier: Some(123),
-            content_type: Some("application/json".to_string()),
-        };
+        props = props
+            .payload_format_indicator(PAYLOAD_FORMAT_INDICATOR_UTF8)
+            .message_expiry_interval(3600)
+            .topic_alias(123)
+            .response_topic("response/topic".to_string())
+            .correlation_data(Bytes::from("correlation_data"))
+            .subscription_identifier(456)
+            .content_type("application/json".to_string())
+            .user_property("key1".to_string(), "value1".to_string())
+            .user_property("key2".to_string(), "value2".to_string());
 
-        assert_eq!(properties.payload_format_indicator, Some(1));
-        assert_eq!(properties.message_expiry_interval, Some(86400));
-        assert_eq!(properties.topic_alias, Some(5));
-        assert_eq!(properties.response_topic, Some("response/topic".to_string()));
-        assert_eq!(properties.correlation_data, Some(Bytes::from("correlation_id")));
-        assert_eq!(properties.user_properties.len(), 1);
-        assert_eq!(properties.subscription_identifier, Some(123));
-        assert_eq!(properties.content_type, Some("application/json".to_string()));
+        assert!(!props.is_empty());
+        assert_eq!(props.payload_format_indicator, Some(PAYLOAD_FORMAT_INDICATOR_UTF8));
+        assert_eq!(props.message_expiry_interval, Some(3600));
+        assert_eq!(props.topic_alias, Some(123));
+        assert_eq!(props.response_topic, Some("response/topic".to_string()));
+        assert_eq!(props.correlation_data, Some(Bytes::from("correlation_data")));
+        assert_eq!(props.subscription_identifier, Some(456));
+        assert_eq!(props.content_type, Some("application/json".to_string()));
+        assert_eq!(props.user_properties.len(), 2);
+        assert_eq!(props.user_properties.get("key1"), Some(&"value1".to_string()));
+        assert_eq!(props.user_properties.get("key2"), Some(&"value2".to_string()));
+
+        // Test payload format indicator methods
+        assert_eq!(props.payload_format_indicator_str(), Some("UTF-8"));
+        assert!(props.is_utf8_payload());
+        assert!(!props.is_unspecified_payload());
+
+        // Test with unspecified payload format
+        let mut props2 = PublishProperties::new();
+        props2 = props2.payload_format_indicator(PAYLOAD_FORMAT_INDICATOR_UNSPECIFIED);
+        assert_eq!(props2.payload_format_indicator_str(), Some("Unspecified"));
+        assert!(props2.is_unspecified_payload());
+        assert!(!props2.is_utf8_payload());
+    }
+
+    #[test]
+    fn test_publish_packet_with_properties() {
+        let payload = Bytes::from("Hello, MQTT v5!");
+        let mut packet = PublishPacket::new("test/topic".to_string(), payload.clone());
+
+        // Test basic creation
+        assert_eq!(packet.topic_name, "test/topic");
+        assert_eq!(packet.payload, payload);
+        assert!(packet.packet_id.is_none());
+        assert!(packet.properties.is_none());
+        assert!(!packet.has_properties());
+        assert_eq!(packet.qos(), 0);
+
+        // Test with QoS and packet ID
+        let packet_with_qos = PublishPacket::with_qos("test/topic2".to_string(), payload.clone(), 1, 123);
+        assert_eq!(packet_with_qos.topic_name, "test/topic2");
+        assert_eq!(packet_with_qos.packet_id, Some(123));
+        assert_eq!(packet_with_qos.qos(), 1);
+
+        // Test setting properties using builder pattern
+        packet = packet
+            .payload_format_indicator(PAYLOAD_FORMAT_INDICATOR_UTF8)
+            .message_expiry_interval(7200)
+            .topic_alias(456)
+            .response_topic("response/topic".to_string())
+            .correlation_data(Bytes::from("corr_data"))
+            .subscription_identifier(789)
+            .content_type("text/plain".to_string())
+            .user_property("app".to_string(), "test".to_string());
+
+        assert!(packet.has_properties());
+        if let Some(props) = &packet.properties {
+            assert_eq!(props.payload_format_indicator, Some(PAYLOAD_FORMAT_INDICATOR_UTF8));
+            assert_eq!(props.message_expiry_interval, Some(7200));
+            assert_eq!(props.topic_alias, Some(456));
+            assert_eq!(props.response_topic, Some("response/topic".to_string()));
+            assert_eq!(props.correlation_data, Some(Bytes::from("corr_data")));
+            assert_eq!(props.subscription_identifier, Some(789));
+            assert_eq!(props.content_type, Some("text/plain".to_string()));
+            assert_eq!(props.user_properties.get("app"), Some(&"test".to_string()));
+        }
+
+        // Test setting packet ID
+        packet = packet.packet_id(999);
+        assert_eq!(packet.packet_id, Some(999));
+        assert_eq!(packet.qos(), 1);
+    }
+
+    #[test]
+    fn test_publish_properties_edge_cases() {
+        // Test empty properties
+        let props = PublishProperties::new();
+        assert!(props.is_empty());
+        assert_eq!(props.payload_format_indicator_str(), None);
+        assert!(!props.is_utf8_payload());
+        assert!(!props.is_unspecified_payload());
+
+        // Test with invalid payload format indicator
+        let mut props2 = PublishProperties::new();
+        props2 = props2.payload_format_indicator(0xFF);
+        assert_eq!(props2.payload_format_indicator_str(), None);
+        assert!(!props2.is_utf8_payload());
+        assert!(!props2.is_unspecified_payload());
+
+        // Test user properties with different keys
+        let mut props3 = PublishProperties::new();
+        props3 = props3
+            .user_property("empty_key".to_string(), "".to_string())
+            .user_property("key".to_string(), "".to_string())
+            .user_property("empty_value".to_string(), "value".to_string());
+        
+        assert_eq!(props3.user_properties.len(), 3);
+        assert_eq!(props3.user_properties.get("empty_key"), Some(&"".to_string()));
+        assert_eq!(props3.user_properties.get("key"), Some(&"".to_string()));
+        assert_eq!(props3.user_properties.get("empty_value"), Some(&"value".to_string()));
+    }
+
+    #[test]
+    fn test_publish_packet_properties_builder() {
+        let payload = Bytes::from("Test payload");
+        let packet = PublishPacket::new("test/topic".to_string(), payload)
+            .payload_format_indicator(PAYLOAD_FORMAT_INDICATOR_UTF8)
+            .message_expiry_interval(3600)
+            .topic_alias(123)
+            .response_topic("response/topic".to_string())
+            .correlation_data(Bytes::from("corr_data"))
+            .subscription_identifier(456)
+            .content_type("application/json".to_string())
+            .user_property("version".to_string(), "5.0".to_string())
+            .user_property("priority".to_string(), "high".to_string());
+
+        assert!(packet.has_properties());
+        if let Some(props) = &packet.properties {
+            assert!(!props.is_empty());
+            assert_eq!(props.payload_format_indicator, Some(PAYLOAD_FORMAT_INDICATOR_UTF8));
+            assert_eq!(props.message_expiry_interval, Some(3600));
+            assert_eq!(props.topic_alias, Some(123));
+            assert_eq!(props.response_topic, Some("response/topic".to_string()));
+            assert_eq!(props.correlation_data, Some(Bytes::from("corr_data")));
+            assert_eq!(props.subscription_identifier, Some(456));
+            assert_eq!(props.content_type, Some("application/json".to_string()));
+            assert_eq!(props.user_properties.len(), 2);
+            assert_eq!(props.user_properties.get("version"), Some(&"5.0".to_string()));
+            assert_eq!(props.user_properties.get("priority"), Some(&"high".to_string()));
+        }
     }
 
     #[test]

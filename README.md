@@ -6,6 +6,15 @@ A comprehensive MQTT protocol library for Rust supporting both MQTT 3.1.1 and MQ
 
 - **MQTT 3.1.1 Protocol Support**: Full implementation of MQTT 3.1.1 specification
 - **MQTT 5.0 Protocol Support**: Full implementation of MQTT 5.0 specification (in progress)
+- **MQTT v5 Publish Properties**: Complete implementation of MQTT v5 publish properties including:
+  - Payload Format Indicator (UTF-8/Unspecified)
+  - Message Expiry Interval
+  - Topic Alias
+  - Response Topic
+  - Correlation Data
+  - Subscription Identifier
+  - Content Type
+  - User Properties
 - **Async/Await Support**: Built on top of Tokio for high-performance async operations
 - **Client and Server**: Both client and server implementations included
 - **QoS Levels**: Support for QoS 0, 1, and 2
@@ -65,6 +74,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+### MQTT 5.0 Publish Properties Example
+
+```rust
+use dumq_mqtt::types::{
+    PublishPacket, PublishProperties, 
+    PAYLOAD_FORMAT_INDICATOR_UTF8
+};
+use bytes::Bytes;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create PublishProperties with MQTT v5 features
+    let properties = PublishProperties::new()
+        .payload_format_indicator(PAYLOAD_FORMAT_INDICATOR_UTF8)
+        .message_expiry_interval(3600) // 1 hour
+        .topic_alias(123)
+        .response_topic("response/topic".to_string())
+        .correlation_data(Bytes::from("request-123"))
+        .subscription_identifier(456)
+        .content_type("application/json".to_string())
+        .user_property("version".to_string(), "5.0".to_string())
+        .user_property("priority".to_string(), "high".to_string());
+
+    // Create PublishPacket with properties using builder pattern
+    let payload = Bytes::from(r#"{"message": "Hello MQTT v5!", "timestamp": 1234567890}"#);
+    let packet = PublishPacket::new("sensor/temperature".to_string(), payload)
+        .payload_format_indicator(PAYLOAD_FORMAT_INDICATOR_UTF8)
+        .message_expiry_interval(7200) // 2 hours
+        .topic_alias(789)
+        .response_topic("sensor/response".to_string())
+        .correlation_data(Bytes::from("sensor-request-456"))
+        .subscription_identifier(101)
+        .content_type("application/json".to_string())
+        .user_property("sensor_id".to_string(), "temp_001".to_string())
+        .user_property("location".to_string(), "room_101".to_string());
+
+    println!("Topic: {}", packet.topic_name);
+    println!("Has Properties: {}", packet.has_properties());
+    println!("Is UTF-8: {}", properties.is_utf8_payload());
+
+    Ok(())
+}
+```
 ```
 
 ### Retain Message Example
@@ -162,6 +215,7 @@ cargo run --example retain_message_example
 - ✅ Basic packet structure
 - ✅ CONNECT/CONNACK with properties
 - ✅ PUBLISH with properties
+- ✅ **Publish Properties** - Full implementation of MQTT v5 publish properties
 - 🔄 Properties encoding/decoding
 - 🔄 Reason codes
 - 🔄 Topic aliases
