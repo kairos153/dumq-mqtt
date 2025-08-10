@@ -111,6 +111,86 @@ pub struct ConnAckPacket {
     pub properties: Option<ConnAckProperties>,
 }
 
+impl ConnAckPacket {
+    /// Create a new ConnAckPacket with default values
+    pub fn new(return_code: ConnectReturnCode) -> Self {
+        Self {
+            session_present: false,
+            return_code,
+            properties: None,
+        }
+    }
+
+    /// Create a new ConnAckPacket with session present
+    pub fn with_session(return_code: ConnectReturnCode, session_present: bool) -> Self {
+        Self {
+            session_present,
+            return_code,
+            properties: None,
+        }
+    }
+
+    /// Set session present
+    pub fn session_present(mut self, present: bool) -> Self {
+        self.session_present = present;
+        self
+    }
+
+    /// Set return code
+    pub fn return_code(mut self, code: ConnectReturnCode) -> Self {
+        self.return_code = code;
+        self
+    }
+
+    /// Set properties
+    pub fn properties(mut self, properties: ConnAckProperties) -> Self {
+        self.properties = Some(properties);
+        self
+    }
+
+    /// Check if this is a successful connection
+    pub fn is_success(&self) -> bool {
+        matches!(self.return_code, ConnectReturnCode::Accepted)
+    }
+
+    /// Check if this is an error connection
+    pub fn is_error(&self) -> bool {
+        !self.is_success()
+    }
+
+    /// Get the error message if this is an error connection
+    pub fn error_message(&self) -> Option<&'static str> {
+        match self.return_code {
+            ConnectReturnCode::Accepted => None,
+            ConnectReturnCode::UnacceptableProtocolVersion => Some("Unacceptable protocol version"),
+            ConnectReturnCode::IdentifierRejected => Some("Identifier rejected"),
+            ConnectReturnCode::ServerUnavailable => Some("Server unavailable"),
+            ConnectReturnCode::BadUsernameOrPassword => Some("Bad username or password"),
+            ConnectReturnCode::NotAuthorized => Some("Not authorized"),
+            ConnectReturnCode::MalformedPacket => Some("Malformed packet"),
+            ConnectReturnCode::ProtocolError => Some("Protocol error"),
+            ConnectReturnCode::ImplementationSpecificError => Some("Implementation specific error"),
+            ConnectReturnCode::UnsupportedProtocolVersion => Some("Unsupported protocol version"),
+            ConnectReturnCode::ClientIdentifierNotValid => Some("Client identifier not valid"),
+            ConnectReturnCode::BadUsernameOrPasswordV5 => Some("Bad username or password (MQTT 5.0)"),
+            ConnectReturnCode::NotAuthorizedV5 => Some("Not authorized (MQTT 5.0)"),
+            ConnectReturnCode::ServerUnavailableV5 => Some("Server unavailable (MQTT 5.0)"),
+            ConnectReturnCode::ServerBusy => Some("Server busy"),
+            ConnectReturnCode::Banned => Some("Banned"),
+            ConnectReturnCode::BadAuthenticationMethod => Some("Bad authentication method"),
+            ConnectReturnCode::TopicNameInvalid => Some("Topic name invalid"),
+            ConnectReturnCode::PacketTooLarge => Some("Packet too large"),
+            ConnectReturnCode::QuotaExceeded => Some("Quota exceeded"),
+            ConnectReturnCode::PayloadFormatInvalid => Some("Payload format invalid"),
+            ConnectReturnCode::RetainNotSupported => Some("Retain not supported"),
+            ConnectReturnCode::QoSNotSupported => Some("QoS not supported"),
+            ConnectReturnCode::UseAnotherServer => Some("Use another server"),
+            ConnectReturnCode::ServerMoved => Some("Server moved"),
+            ConnectReturnCode::ConnectionRateExceeded => Some("Connection rate exceeded"),
+        }
+    }
+}
+
 /// Connect return codes
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConnectReturnCode {
@@ -120,6 +200,27 @@ pub enum ConnectReturnCode {
     ServerUnavailable = 3,
     BadUsernameOrPassword = 4,
     NotAuthorized = 5,
+    // MQTT 5.0 additional return codes
+    MalformedPacket = 128,
+    ProtocolError = 130,
+    ImplementationSpecificError = 131,
+    UnsupportedProtocolVersion = 132,
+    ClientIdentifierNotValid = 133,
+    BadUsernameOrPasswordV5 = 134,
+    NotAuthorizedV5 = 135,
+    ServerUnavailableV5 = 136,
+    ServerBusy = 137,
+    Banned = 138,
+    BadAuthenticationMethod = 140,
+    TopicNameInvalid = 144,
+    PacketTooLarge = 149,
+    QuotaExceeded = 151,
+    PayloadFormatInvalid = 153,
+    RetainNotSupported = 154,
+    QoSNotSupported = 155,
+    UseAnotherServer = 156,
+    ServerMoved = 157,
+    ConnectionRateExceeded = 159,
 }
 
 impl ConnectReturnCode {
@@ -131,6 +232,26 @@ impl ConnectReturnCode {
             3 => Some(ConnectReturnCode::ServerUnavailable),
             4 => Some(ConnectReturnCode::BadUsernameOrPassword),
             5 => Some(ConnectReturnCode::NotAuthorized),
+            128 => Some(ConnectReturnCode::MalformedPacket),
+            130 => Some(ConnectReturnCode::ProtocolError),
+            131 => Some(ConnectReturnCode::ImplementationSpecificError),
+            132 => Some(ConnectReturnCode::UnsupportedProtocolVersion),
+            133 => Some(ConnectReturnCode::ClientIdentifierNotValid),
+            134 => Some(ConnectReturnCode::BadUsernameOrPasswordV5),
+            135 => Some(ConnectReturnCode::NotAuthorizedV5),
+            136 => Some(ConnectReturnCode::ServerUnavailableV5),
+            137 => Some(ConnectReturnCode::ServerBusy),
+            138 => Some(ConnectReturnCode::Banned),
+            140 => Some(ConnectReturnCode::BadAuthenticationMethod),
+            144 => Some(ConnectReturnCode::TopicNameInvalid),
+            149 => Some(ConnectReturnCode::PacketTooLarge),
+            151 => Some(ConnectReturnCode::QuotaExceeded),
+            153 => Some(ConnectReturnCode::PayloadFormatInvalid),
+            154 => Some(ConnectReturnCode::RetainNotSupported),
+            155 => Some(ConnectReturnCode::QoSNotSupported),
+            156 => Some(ConnectReturnCode::UseAnotherServer),
+            157 => Some(ConnectReturnCode::ServerMoved),
+            159 => Some(ConnectReturnCode::ConnectionRateExceeded),
             _ => None,
         }
     }
@@ -286,6 +407,160 @@ pub struct ConnAckProperties {
     pub authentication_data: Option<Bytes>,
 }
 
+impl Default for ConnAckProperties {
+    fn default() -> Self {
+        Self {
+            session_expiry_interval: None,
+            receive_maximum: None,
+            max_qos: None,
+            retain_available: None,
+            max_packet_size: None,
+            assigned_client_identifier: None,
+            topic_alias_maximum: None,
+            reason_string: None,
+            user_properties: HashMap::new(),
+            wildcard_subscription_available: None,
+            subscription_identifiers_available: None,
+            shared_subscription_available: None,
+            server_keep_alive: None,
+            response_information: None,
+            server_reference: None,
+            authentication_method: None,
+            authentication_data: None,
+        }
+    }
+}
+
+impl ConnAckProperties {
+    /// Create a new ConnAckProperties with default values
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set session expiry interval
+    pub fn session_expiry_interval(mut self, interval: u32) -> Self {
+        self.session_expiry_interval = Some(interval);
+        self
+    }
+
+    /// Set receive maximum
+    pub fn receive_maximum(mut self, max: u16) -> Self {
+        self.receive_maximum = Some(max);
+        self
+    }
+
+    /// Set maximum QoS
+    pub fn max_qos(mut self, qos: u8) -> Self {
+        self.max_qos = Some(qos);
+        self
+    }
+
+    /// Set retain available
+    pub fn retain_available(mut self, available: bool) -> Self {
+        self.retain_available = Some(available);
+        self
+    }
+
+    /// Set maximum packet size
+    pub fn max_packet_size(mut self, size: u32) -> Self {
+        self.max_packet_size = Some(size);
+        self
+    }
+
+    /// Set assigned client identifier
+    pub fn assigned_client_identifier(mut self, id: String) -> Self {
+        self.assigned_client_identifier = Some(id);
+        self
+    }
+
+    /// Set topic alias maximum
+    pub fn topic_alias_maximum(mut self, max: u16) -> Self {
+        self.topic_alias_maximum = Some(max);
+        self
+    }
+
+    /// Set reason string
+    pub fn reason_string(mut self, reason: String) -> Self {
+        self.reason_string = Some(reason);
+        self
+    }
+
+    /// Add a user property
+    pub fn user_property(mut self, key: String, value: String) -> Self {
+        self.user_properties.insert(key, value);
+        self
+    }
+
+    /// Set wildcard subscription available
+    pub fn wildcard_subscription_available(mut self, available: bool) -> Self {
+        self.wildcard_subscription_available = Some(available);
+        self
+    }
+
+    /// Set subscription identifiers available
+    pub fn subscription_identifiers_available(mut self, available: bool) -> Self {
+        self.subscription_identifiers_available = Some(available);
+        self
+    }
+
+    /// Set shared subscription available
+    pub fn shared_subscription_available(mut self, available: bool) -> Self {
+        self.shared_subscription_available = Some(available);
+        self
+    }
+
+    /// Set server keep alive
+    pub fn server_keep_alive(mut self, keep_alive: u16) -> Self {
+        self.server_keep_alive = Some(keep_alive);
+        self
+    }
+
+    /// Set response information
+    pub fn response_information(mut self, info: String) -> Self {
+        self.response_information = Some(info);
+        self
+    }
+
+    /// Set server reference
+    pub fn server_reference(mut self, reference: String) -> Self {
+        self.server_reference = Some(reference);
+        self
+    }
+
+    /// Set authentication method
+    pub fn authentication_method(mut self, method: String) -> Self {
+        self.authentication_method = Some(method);
+        self
+    }
+
+    /// Set authentication data
+    pub fn authentication_data(mut self, data: Bytes) -> Self {
+        self.authentication_data = Some(data);
+        self
+    }
+
+    /// Check if any properties are set
+    pub fn is_empty(&self) -> bool {
+        self.session_expiry_interval.is_none() &&
+        self.receive_maximum.is_none() &&
+        self.max_qos.is_none() &&
+        self.retain_available.is_none() &&
+        self.max_packet_size.is_none() &&
+        self.assigned_client_identifier.is_none() &&
+        self.topic_alias_maximum.is_none() &&
+        self.reason_string.is_none() &&
+        self.user_properties.is_empty() &&
+        self.wildcard_subscription_available.is_none() &&
+        self.subscription_identifiers_available.is_none() &&
+        self.shared_subscription_available.is_none() &&
+        self.server_keep_alive.is_none() &&
+        self.response_information.is_none() &&
+        self.server_reference.is_none() &&
+        self.authentication_method.is_none() &&
+        self.authentication_data.is_none()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PublishProperties {
     pub payload_format_indicator: Option<u8>,
@@ -426,6 +701,26 @@ mod tests {
         assert_eq!(ConnectReturnCode::from_u8(3), Some(ConnectReturnCode::ServerUnavailable));
         assert_eq!(ConnectReturnCode::from_u8(4), Some(ConnectReturnCode::BadUsernameOrPassword));
         assert_eq!(ConnectReturnCode::from_u8(5), Some(ConnectReturnCode::NotAuthorized));
+        assert_eq!(ConnectReturnCode::from_u8(128), Some(ConnectReturnCode::MalformedPacket));
+        assert_eq!(ConnectReturnCode::from_u8(130), Some(ConnectReturnCode::ProtocolError));
+        assert_eq!(ConnectReturnCode::from_u8(131), Some(ConnectReturnCode::ImplementationSpecificError));
+        assert_eq!(ConnectReturnCode::from_u8(132), Some(ConnectReturnCode::UnsupportedProtocolVersion));
+        assert_eq!(ConnectReturnCode::from_u8(133), Some(ConnectReturnCode::ClientIdentifierNotValid));
+        assert_eq!(ConnectReturnCode::from_u8(134), Some(ConnectReturnCode::BadUsernameOrPasswordV5));
+        assert_eq!(ConnectReturnCode::from_u8(135), Some(ConnectReturnCode::NotAuthorizedV5));
+        assert_eq!(ConnectReturnCode::from_u8(136), Some(ConnectReturnCode::ServerUnavailableV5));
+        assert_eq!(ConnectReturnCode::from_u8(137), Some(ConnectReturnCode::ServerBusy));
+        assert_eq!(ConnectReturnCode::from_u8(138), Some(ConnectReturnCode::Banned));
+        assert_eq!(ConnectReturnCode::from_u8(140), Some(ConnectReturnCode::BadAuthenticationMethod));
+        assert_eq!(ConnectReturnCode::from_u8(144), Some(ConnectReturnCode::TopicNameInvalid));
+        assert_eq!(ConnectReturnCode::from_u8(149), Some(ConnectReturnCode::PacketTooLarge));
+        assert_eq!(ConnectReturnCode::from_u8(151), Some(ConnectReturnCode::QuotaExceeded));
+        assert_eq!(ConnectReturnCode::from_u8(153), Some(ConnectReturnCode::PayloadFormatInvalid));
+        assert_eq!(ConnectReturnCode::from_u8(154), Some(ConnectReturnCode::RetainNotSupported));
+        assert_eq!(ConnectReturnCode::from_u8(155), Some(ConnectReturnCode::QoSNotSupported));
+        assert_eq!(ConnectReturnCode::from_u8(156), Some(ConnectReturnCode::UseAnotherServer));
+        assert_eq!(ConnectReturnCode::from_u8(157), Some(ConnectReturnCode::ServerMoved));
+        assert_eq!(ConnectReturnCode::from_u8(159), Some(ConnectReturnCode::ConnectionRateExceeded));
         assert_eq!(ConnectReturnCode::from_u8(6), None);
         assert_eq!(ConnectReturnCode::from_u8(255), None);
     }
@@ -438,6 +733,26 @@ mod tests {
         assert_eq!(ConnectReturnCode::ServerUnavailable as u8, 3);
         assert_eq!(ConnectReturnCode::BadUsernameOrPassword as u8, 4);
         assert_eq!(ConnectReturnCode::NotAuthorized as u8, 5);
+        assert_eq!(ConnectReturnCode::MalformedPacket as u8, 128);
+        assert_eq!(ConnectReturnCode::ProtocolError as u8, 130);
+        assert_eq!(ConnectReturnCode::ImplementationSpecificError as u8, 131);
+        assert_eq!(ConnectReturnCode::UnsupportedProtocolVersion as u8, 132);
+        assert_eq!(ConnectReturnCode::ClientIdentifierNotValid as u8, 133);
+        assert_eq!(ConnectReturnCode::BadUsernameOrPasswordV5 as u8, 134);
+        assert_eq!(ConnectReturnCode::NotAuthorizedV5 as u8, 135);
+        assert_eq!(ConnectReturnCode::ServerUnavailableV5 as u8, 136);
+        assert_eq!(ConnectReturnCode::ServerBusy as u8, 137);
+        assert_eq!(ConnectReturnCode::Banned as u8, 138);
+        assert_eq!(ConnectReturnCode::BadAuthenticationMethod as u8, 140);
+        assert_eq!(ConnectReturnCode::TopicNameInvalid as u8, 144);
+        assert_eq!(ConnectReturnCode::PacketTooLarge as u8, 149);
+        assert_eq!(ConnectReturnCode::QuotaExceeded as u8, 151);
+        assert_eq!(ConnectReturnCode::PayloadFormatInvalid as u8, 153);
+        assert_eq!(ConnectReturnCode::RetainNotSupported as u8, 154);
+        assert_eq!(ConnectReturnCode::QoSNotSupported as u8, 155);
+        assert_eq!(ConnectReturnCode::UseAnotherServer as u8, 156);
+        assert_eq!(ConnectReturnCode::ServerMoved as u8, 157);
+        assert_eq!(ConnectReturnCode::ConnectionRateExceeded as u8, 159);
     }
 
     #[test]
