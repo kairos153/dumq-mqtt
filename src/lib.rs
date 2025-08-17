@@ -171,7 +171,8 @@ pub mod codec;
 pub mod error;
 pub mod types;
 
-pub use client::Client;
+// Re-export main client components
+pub use client::{Client, ClientConfig, ClientConnection, ConnectionState, MessageHandler};
 pub use server::Server;
 pub use error::{Error, Result};
 pub use protocol::{ConnectOptions, QoS, RetainFlag, DupFlag};
