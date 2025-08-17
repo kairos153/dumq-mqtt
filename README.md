@@ -4,6 +4,15 @@ A comprehensive MQTT protocol library for Rust supporting both MQTT 3.1.1 and MQ
 
 ## Features
 
+- **Modular Architecture**: Well-organized code structure with separate modules for different packet types
+- **Codec Organization**: Structured MQTT codec with dedicated modules for:
+  - Core codec functionality (`core.rs`)
+  - Connect/ConnAck packets (`connect.rs`)
+  - Publish-related packets (`publish.rs`)
+  - Subscribe-related packets (`subscribe.rs`)
+  - MQTT 5.0 properties (`properties.rs`)
+  - Utility functions (`utils.rs`)
+
 - **MQTT 3.1.1 Protocol Support**: Full implementation of MQTT 3.1.1 specification
 - **MQTT 5.0 Protocol Support**: Full implementation of MQTT 5.0 specification (in progress)
 - **MQTT v5 Publish Properties**: Complete implementation of MQTT v5 publish properties including:
@@ -26,6 +35,35 @@ A comprehensive MQTT protocol library for Rust supporting both MQTT 3.1.1 and MQ
 - **Keep Alive**: Automatic keep-alive mechanism
 - **Message Routing**: Efficient message routing between publishers and subscribers
 - **Real-time Communication**: Low-latency message delivery with async processing
+
+## Project Structure
+
+The library is organized into several core modules for better maintainability and code organization:
+
+```
+src/
+├── codec/           # MQTT packet encoding/decoding
+│   ├── core.rs      # Main MqttCodec implementation
+│   ├── connect.rs   # Connect/ConnAck packet handling
+│   ├── publish.rs   # Publish-related packet handling
+│   ├── subscribe.rs # Subscribe-related packet handling
+│   ├── properties.rs # MQTT 5.0 properties handling
+│   ├── utils.rs     # Utility functions (strings, bytes, length)
+│   └── mod.rs       # Module declarations and re-exports
+├── types/           # Core data structures
+├── client/          # MQTT client implementation
+├── server/          # MQTT server implementation
+├── protocol/        # Protocol-level abstractions
+└── error/           # Error handling and result types
+```
+
+### Codec Module Benefits
+
+- **Maintainability**: Each packet type has its own dedicated module
+- **Readability**: Clear separation of concerns makes code easier to understand
+- **Testability**: Individual modules can be tested in isolation
+- **Extensibility**: Easy to add new packet types or modify existing ones
+- **Collaboration**: Multiple developers can work on different packet types simultaneously
 
 ## Installation
 
@@ -370,6 +408,33 @@ The library uses the `log` crate for logging. Enable logging by setting the `RUS
 export RUST_LOG=debug
 cargo run --example client_example
 ```
+
+## Codec Refactoring Summary
+
+The MQTT codec has been refactored from a single large file (`codec.rs` - 2000+ lines) into a well-organized modular structure:
+
+### Before (Single File)
+- `src/codec.rs` - 2038 lines containing all codec functionality
+- Difficult to navigate and maintain
+- All packet types mixed together
+- Hard to test individual components
+
+### After (Modular Structure)
+- `src/codec/core.rs` - Main codec implementation (380 lines)
+- `src/codec/connect.rs` - Connect/ConnAck packets (205 lines)
+- `src/codec/publish.rs` - Publish-related packets (243 lines)
+- `src/codec/subscribe.rs` - Subscribe-related packets (187 lines)
+- `src/codec/properties.rs` - MQTT 5.0 properties (392 lines)
+- `src/codec/utils.rs` - Utility functions (190 lines)
+- `src/codec/mod.rs` - Module organization (89 lines)
+
+### Benefits Achieved
+- **Reduced complexity**: Each module focuses on specific functionality
+- **Better organization**: Logical grouping of related packet types
+- **Improved maintainability**: Easier to locate and modify specific features
+- **Enhanced testability**: Individual modules can be tested independently
+- **Better collaboration**: Multiple developers can work on different areas
+- **Cleaner imports**: Clear dependencies between modules
 
 ## Contributing
 
