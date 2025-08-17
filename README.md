@@ -54,8 +54,24 @@ src/
 ├── client/          # MQTT client implementation
 ├── server/          # MQTT server implementation
 ├── protocol/        # Protocol-level abstractions
+│   ├── qos.rs       # Quality of Service definitions
+│   ├── flags.rs     # Protocol flags (retain, duplicate)
+│   ├── connect.rs   # Connection options and configuration
+│   ├── subscribe.rs # Subscription options
+│   ├── publish.rs   # Publish options
+│   ├── reason_codes.rs # MQTT 5.0 reason codes
+│   ├── constants.rs # Protocol constants and limits
+│   └── mod.rs       # Module declarations and re-exports
 └── error/           # Error handling and result types
 ```
+
+### Protocol Module Benefits
+
+- **Modularity**: Each protocol concept has its own dedicated module
+- **Maintainability**: Easy to locate and modify specific protocol functionality
+- **Testability**: Individual modules can be tested in isolation
+- **Extensibility**: Simple to add new protocol features or modify existing ones
+- **Collaboration**: Multiple developers can work on different protocol aspects simultaneously
 
 ### Codec Module Benefits
 
