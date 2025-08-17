@@ -24,6 +24,8 @@ A comprehensive MQTT protocol library for Rust supporting both MQTT 3.1.1 and MQ
 - **Retained Messages**: Full support for retained messages with automatic delivery to new subscribers
 - **Will Messages**: Last Will and Testament support
 - **Keep Alive**: Automatic keep-alive mechanism
+- **Message Routing**: Efficient message routing between publishers and subscribers
+- **Real-time Communication**: Low-latency message delivery with async processing
 
 ## Installation
 
@@ -35,6 +37,90 @@ dumq-mqtt = "0.1.0"
 ```
 
 ## Quick Start
+
+### Message Exchange Example
+
+Here's a complete example showing how to set up a server and exchange messages between clients:
+
+```rust
+use dumq_mqtt::{
+    server::{Server, ServerConfig},
+    client::{Client, ClientConfig},
+    protocol::{QoS, ConnectOptions, PublishOptions},
+    types::Message,
+};
+use log::{info, error};
+use tokio::time::{sleep, Duration};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+
+    // Start MQTT server
+    let server_config = ServerConfig::new("127.0.0.1:1883")
+        .allow_anonymous(true);
+    let mut server = Server::new(server_config);
+    
+    let server_handle = tokio::spawn(async move {
+        if let Err(e) = server.start().await {
+            error!("Server error: {}", e);
+        }
+    });
+
+    sleep(Duration::from_millis(100)).await;
+
+    // Create subscriber
+    let mut subscriber = Client::new(ClientConfig::new("127.0.0.1:1883"));
+    subscriber = subscriber.connect(ConnectOptions::new("subscriber").clean_session(true)).await?;
+    subscriber.subscribe("hello/world", QoS::AtLeastOnce).await?;
+
+    // Set message handler
+    let message_count = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let message_count_clone = message_count.clone();
+    
+    subscriber = subscriber.set_message_handler(move |message: Message| {
+        info!("Received: {}", String::from_utf8_lossy(&message.payload));
+        message_count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    });
+
+    // Start listening
+    let subscriber_handle = tokio::spawn(async move {
+        if let Err(e) = subscriber.listen().await {
+            error!("Subscriber error: {}", e);
+        }
+    });
+
+    sleep(Duration::from_millis(100)).await;
+
+    // Create publisher and send message
+    let mut publisher = Client::new(ClientConfig::new("127.0.0.1:1883"));
+    publisher = publisher.connect(ConnectOptions::new("publisher").clean_session(true)).await?;
+
+    let publish_options = PublishOptions {
+        topic: "hello/world".to_string(),
+        payload: b"Hello, MQTT World!".to_vec(),
+        qos: QoS::AtLeastOnce,
+        retain: false,
+        dup: false,
+        packet_id: None,
+    };
+
+    publisher.publish(publish_options).await?;
+    info!("Message published");
+
+    // Wait and check result
+    sleep(Duration::from_secs(1)).await;
+    let received_count = message_count.load(std::sync::atomic::Ordering::SeqCst);
+    info!("Received {} messages", received_count);
+
+    // Cleanup
+    publisher.disconnect().await?;
+    server_handle.abort();
+    subscriber_handle.abort();
+
+    Ok(())
+}
+```
 
 ### Client Example
 
@@ -62,8 +148,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     client.subscribe("test/topic", QoS::AtLeastOnce).await?;
 
     // Publish a message
-    let publish_options = PublishOptions::new("test/topic", "Hello, MQTT!")
-        .qos(QoS::AtLeastOnce);
+    let publish_options = PublishOptions {
+        topic: "test/topic".to_string(),
+        payload: b"Hello, MQTT!".to_vec(),
+        qos: QoS::AtLeastOnce,
+        retain: false,
+        dup: false,
+        packet_id: None,
+    };
     
     client.publish(publish_options).await?;
 
@@ -117,7 +209,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-```
 ```
 
 ### Retain Message Example

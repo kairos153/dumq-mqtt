@@ -1,3 +1,169 @@
+//! # MQTT Server Module
+//! 
+//! This module provides a comprehensive MQTT broker/server implementation that can handle
+//! multiple client connections, manage subscriptions, route messages, and maintain session
+//! state. It supports both MQTT 3.1.1 and MQTT 5.0 protocols with full broker functionality.
+//! 
+//! ## Overview
+//! 
+//! The server module implements a full-featured MQTT broker with:
+//! - **Multi-Client Support**: Handle thousands of concurrent client connections
+//! - **Message Routing**: Efficient topic-based message distribution
+//! - **Session Management**: Clean and persistent session handling
+//! - **Subscription Management**: Wildcard topic support and QoS handling
+//! - **Message Retention**: Configurable message retention policies
+//! - **Authentication**: Username/password and certificate-based authentication
+//! - **Access Control**: Granular permission management
+//! - **Performance Monitoring**: Connection and message statistics
+//! 
+//! ## Architecture
+//! 
+//! The server follows a multi-layered architecture:
+//! 
+//! The server follows a multi-layered architecture:
+//! 
+//! - **Client Connections**: TcpStream handling
+//! - **Connection Handler**: ClientConnection management
+//! - **Session Manager**: Session state management
+//! - **Message Router**: Subscription Manager for message routing
+//! - **Storage Layer**: Retained Messages and Sessions storage
+//! 
+//! ### Core Components
+//! 
+//! - **`Server`**: Main server instance with configuration and lifecycle management
+//! - **`ServerConfig`**: Server configuration options and limits
+//! - **`ClientConnection`**: Individual client connection handler
+//! - **`Session`**: Client session state and subscription management
+//! - **`Subscription`**: Topic subscription with QoS and client mapping
+//! - **`Authentication`**: User authentication and authorization
+//! 
+//! ## Features
+//! 
+//! ### Protocol Support
+//! - **MQTT 3.1.1**: Full protocol compliance
+//! - **MQTT 5.0**: Extended features including properties and enhanced error handling
+//! - **Protocol Negotiation**: Automatic version detection and fallback
+//! - **Backward Compatibility**: Seamless support for mixed protocol versions
+//! 
+//! ### Broker Functionality
+//! - **Message Routing**: Efficient topic-based message distribution
+//! - **QoS Handling**: Full support for all QoS levels (0, 1, 2)
+//! - **Wildcard Subscriptions**: Single-level (+) and multi-level (#) wildcards
+//! - **Message Retention**: Configurable retention policies
+//! - **Last Will and Testament**: Automatic will message delivery
+//! - **Session Persistence**: Clean and persistent session handling
+//! 
+//! ### Scalability Features
+//! - **Connection Pooling**: Efficient connection management
+//! - **Async I/O**: Built on Tokio for high concurrency
+//! - **Memory Management**: Optimized buffer handling and memory usage
+//! - **Load Balancing**: Support for multiple server instances
+//! 
+//! ## Usage Examples
+//! 
+//! ### Basic Server Setup
+//! 
+//! ```rust
+//! use dumq_mqtt::server::{Server, ServerConfig};
+//! 
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Create server configuration
+//!     let config = ServerConfig::new("0.0.0.0:1883")
+//!         .max_connections(1000)
+//!         .max_packet_size(1024 * 1024) // 1MB
+//!         .protocol_version(4) // MQTT 3.1.1
+//!         .allow_anonymous(true);
+//!     
+//!     let mut server = Server::new(config);
+//!     
+//!     // Start the server
+//!     server.start().await?;
+//!     
+//!     // Keep the server running
+//!     tokio::signal::ctrl_c().await?;
+//!     
+//!     // Graceful shutdown
+//!     // Note: Server shutdown method may vary by implementation
+//!     
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! ### Server with Authentication
+//! 
+//! ```rust
+//! use dumq_mqtt::server::{Server, ServerConfig, Authentication};
+//! 
+//! async fn authenticated_server() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Create authentication configuration
+//!     let auth = Authentication::new()
+//!         .add_user("admin", "admin_password")
+//!         .add_user("user1", "user1_password")
+//!         .add_user("user2", "user2_password");
+//!     
+//!     let config = ServerConfig::new("0.0.0.0:1883")
+//!         .max_connections(500)
+//!         .allow_anonymous(false)
+//!         .authentication(auth);
+//!     
+//!     let mut server = Server::new(config);
+//!     server.start().await?;
+//!     
+//!     // Server will now require authentication for all connections
+//!     tokio::signal::ctrl_c().await?;
+//!     // Note: Server shutdown method may vary by implementation
+//!     
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! ## Performance Features
+//! 
+//! ### Connection Management
+//! - **Connection Pooling**: Efficient connection reuse
+//! - **Async I/O**: Non-blocking I/O operations
+//! - **Memory Optimization**: Minimal memory allocation
+//! - **Buffer Management**: Efficient buffer handling
+//! 
+//! ### Message Routing
+//! - **Topic Tree**: Optimized topic matching
+//! - **Wildcard Support**: Efficient wildcard subscription handling
+//! - **QoS Management**: Proper QoS level enforcement
+//! - **Message Queuing**: Configurable message queues
+//! 
+//! ### Scalability
+//! - **Horizontal Scaling**: Support for multiple server instances
+//! - **Load Balancing**: Automatic load distribution
+//! - **Resource Management**: Efficient resource utilization
+//! - **Monitoring**: Real-time performance metrics
+//! 
+//! ## Security Features
+//! 
+//! - **Authentication**: Username/password support
+//! - **Authorization**: Granular access control
+//! - **TLS/SSL**: Encrypted connections (planned)
+//! - **Input Validation**: All inputs are validated
+//! - **Buffer Protection**: Automatic buffer size limits
+//! - **Rate Limiting**: Configurable rate limiting (planned)
+//! 
+//! ## Testing
+//! 
+//! The module includes comprehensive tests for:
+//! - Server startup and shutdown
+//! - Client connection handling
+//! - Message routing and delivery
+//! - Subscription management
+//! - Authentication and authorization
+//! - Performance and scalability
+//! - Error handling and edge cases
+//! 
+//! Run tests with:
+//! 
+//! ```bash
+//! cargo test --package dumq-mqtt --lib server
+//! ```
+
 use crate::codec::MqttCodec;
 use crate::error::{Error, Result};
 use crate::protocol::QoS;

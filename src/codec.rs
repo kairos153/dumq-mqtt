@@ -1,3 +1,259 @@
+//! # MQTT Codec Module
+//! 
+//! This module provides the binary encoding and decoding functionality for the MQTT wire protocol.
+//! It handles the conversion between high-level MQTT packet structures and their binary
+//! representation according to the MQTT specification.
+//! 
+//! ## Overview
+//! 
+//! The codec module is responsible for:
+//! - **Packet Encoding**: Converting MQTT packets to binary wire format
+//! - **Packet Decoding**: Parsing binary data into MQTT packet structures
+//! - **Protocol Compliance**: Ensuring adherence to MQTT specification requirements
+//! - **Buffer Management**: Efficient handling of binary data with minimal copying
+//! - **Version Handling**: Support for both MQTT 3.1.1 and MQTT 5.0 protocols
+//! 
+//! ## Architecture
+//! 
+//! The codec follows a layered approach:
+//! 
+//! The codec follows a layered approach:
+//! 
+//! - **Application Layer**: Packet structs for high-level representation
+//! - **Codec Layer**: MqttCodec for encoding/decoding logic
+//! - **Binary Layer**: Bytes/BytesMut for efficient buffer management
+//! 
+//! ### Core Components
+//! 
+//! - **`MqttCodec`**: Main codec implementation with protocol version awareness
+//! - **Encoding Functions**: Convert packets to binary representation
+//! - **Decoding Functions**: Parse binary data into packet structures
+//! - **Buffer Management**: Efficient memory handling with `Bytes` and `BytesMut`
+//! 
+//! ## Protocol Support
+//! 
+//! ### MQTT 3.1.1
+//! - Fixed header encoding/decoding
+//! - Variable header handling for all packet types
+//! - Payload encoding for connect, publish, subscribe, etc.
+//! - Remaining length calculation and validation
+//! 
+//! ### MQTT 5.0
+//! - Extended property system encoding/decoding
+//! - User properties with UTF-8 validation
+//! - Reason codes and enhanced error handling
+//! - Topic aliases and subscription identifiers
+//! - Message expiry and content type properties
+//! 
+//! ## Usage Examples
+//! 
+//! ### Basic Codec Usage
+//! 
+//! ```rust
+//! use dumq_mqtt::codec::MqttCodec;
+//! use dumq_mqtt::types::*;
+//! use bytes::BytesMut;
+//! 
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Create codec for MQTT 3.1.1
+//!     let codec = MqttCodec::new(4);
+//! 
+//!     // Create a packet
+//!     let packet = Packet {
+//!         header: PacketHeader {
+//!             packet_type: PacketType::Connect,
+//!             dup: false,
+//!             qos: 0,
+//!             retain: false,
+//!             remaining_length: 0,
+//!         },
+//!         payload: PacketPayload::Connect(ConnectPacket {
+//!             protocol_name: "MQTT".to_string(),
+//!             protocol_version: 4,
+//!             clean_session: true,
+//!             will_flag: false,
+//!             will_qos: 0,
+//!             will_retain: false,
+//!             password_flag: false,
+//!             username_flag: false,
+//!             keep_alive: 60,
+//!             client_id: "test_client".to_string(),
+//!             will_topic: None,
+//!             will_message: None,
+//!             username: None,
+//!             password: None,
+//!             properties: None,
+//!         }),
+//!     };
+//! 
+//!     // Encode packet to binary
+//!     let binary = codec.encode(&packet)?;
+//!     println!("Encoded packet: {:?}", binary);
+//! 
+//!     // Decode binary back to packet
+//!     let mut buffer = bytes::BytesMut::from(&binary[..]);
+//!     let decoded = codec.decode(&mut buffer)?;
+//! 
+//!     match decoded {
+//!         Some(packet) => println!("Decoded packet: {:?}", packet),
+//!         None => println!("Incomplete packet data"),
+//!     }
+//!     
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! ### Streaming Decoding
+//! 
+//! ```rust
+//! use dumq_mqtt::codec::MqttCodec;
+//! use dumq_mqtt::types::*;
+//! use bytes::BytesMut;
+//! 
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let codec = MqttCodec::new(4);
+//!     let mut buffer = bytes::BytesMut::new();
+//! 
+//!     // Append incoming data to buffer
+//!     // buffer.extend_from_slice(&incoming_data);
+//! 
+//!     // Try to decode complete packets
+//!     while let Ok(Some(packet)) = codec.decode(&mut buffer) {
+//!         // Process complete packet
+//!         println!("Decoded packet: {:?}", packet);
+//!         
+//!         // Continue with remaining data
+//!         if buffer.is_empty() {
+//!             break;
+//!         }
+//!     }
+//!     
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! ### Protocol Version Handling
+//! 
+//! ```rust
+//! use dumq_mqtt::codec::MqttCodec;
+//! 
+//! fn main() {
+//!     // MQTT 3.1.1 codec
+//!     let codec_v3 = MqttCodec::new(4);
+//! 
+//!     // MQTT 5.0 codec
+//!     let codec_v5 = MqttCodec::new(5);
+//! 
+//!     // The codec automatically handles version-specific features
+//!     // Note: This is a conceptual example - actual packet creation would depend on implementation
+//!     println!("Using MQTT 3.1.1 codec: {:?}", codec_v3);
+//!     println!("Using MQTT 5.0 codec: {:?}", codec_v5);
+//! }
+//! ```
+//! 
+//! ### Error Handling
+//! 
+//! ```rust
+//! use dumq_mqtt::codec::MqttCodec;
+//! use dumq_mqtt::error::Error;
+//! use bytes::BytesMut;
+//! 
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let codec = MqttCodec::new(4);
+//!     let mut buffer = bytes::BytesMut::new();
+//!     // buffer.extend_from_slice(&corrupted_data[..]);
+//! 
+//!     match codec.decode(&mut buffer) {
+//!         Ok(Some(packet)) => {
+//!             println!("Successfully decoded packet");
+//!         }
+//!         Ok(None) => {
+//!             println!("Incomplete packet data");
+//!         }
+//!         Err(Error::InvalidPacket(msg)) => {
+//!             eprintln!("Invalid packet format: {}", msg);
+//!         }
+//!         Err(Error::Protocol(msg)) => {
+//!             eprintln!("Protocol violation: {}", msg);
+//!         }
+//!         Err(e) => {
+//!             eprintln!("Other error: {:?}", e);
+//!         }
+//!     }
+//!     
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! ## Performance Features
+//! 
+//! ### Zero-Copy Operations
+//! - Uses `Bytes` for efficient memory sharing
+//! - Minimal data copying during encoding/decoding
+//! - Efficient buffer management with `BytesMut`
+//! 
+//! ### Memory Efficiency
+//! - Reuses buffers when possible
+//! - Efficient remaining length encoding
+//! - Optimized property encoding for MQTT 5.0
+//! 
+//! ### Streaming Support
+//! - Handles partial packet data gracefully
+//! - Efficient processing of large message streams
+//! - Minimal memory allocation during processing
+//! 
+//! ## Buffer Management
+//! 
+//! The codec uses the `bytes` crate for efficient buffer handling:
+//! 
+//! - **`BytesMut`**: Mutable buffer for building packets
+//! - **`Bytes`**: Immutable buffer for reading packets
+//! - **Automatic Growth**: Buffers grow as needed
+//! - **Memory Pooling**: Efficient memory reuse
+//! 
+//! ## Protocol Compliance
+//! 
+//! The codec strictly follows the MQTT specification:
+//! 
+//! - **Fixed Header**: Correct packet type and flag encoding
+//! - **Remaining Length**: Proper length calculation and validation
+//! - **Variable Header**: Protocol-specific header fields
+//! - **Payload**: Correct payload encoding for each packet type
+//! - **Properties**: MQTT 5.0 property encoding/decoding
+//! 
+//! ## Error Handling
+//! 
+//! Comprehensive error handling for all failure modes:
+//! 
+//! - **Invalid Packets**: Malformed or corrupted data
+//! - **Protocol Violations**: MQTT specification violations
+//! - **Incomplete Data**: Partial packet information
+//! - **Version Mismatches**: Unsupported protocol features
+//! - **Buffer Errors**: Memory allocation or access issues
+//! 
+//! ## Testing
+//! 
+//! The module includes extensive tests for:
+//! - Packet encoding/decoding round-trip
+//! - Protocol version compatibility
+//! - Error handling and edge cases
+//! - Buffer management and memory efficiency
+//! - MQTT specification compliance
+//! 
+//! Run tests with:
+//! 
+//! ```bash
+//! cargo test --package dumq-mqtt --lib codec
+//! ```
+//! 
+//! ## Security Considerations
+//! 
+//! - **Input Validation**: All incoming data is validated before processing
+//! - **Buffer Overflow Protection**: Automatic buffer size limits
+//! - **Protocol Compliance**: Strict adherence to MQTT specifications
+//! - **Memory Safety**: Rust's memory safety guarantees
+//! - **UTF-8 Validation**: Proper string encoding validation
+
 use crate::error::{Error, Result};
 use crate::types::{Packet, PacketType, PacketHeader, PacketPayload, ConnectPacket, ConnAckPacket, PublishPacket, PubAckPacket, PubRecPacket, PubRelPacket, PubCompPacket, SubscribePacket, SubAckPacket, UnsubscribePacket, UnsubAckPacket, DisconnectPacket, AuthPacket, ConnectProperties, ConnAckProperties, PublishProperties, TopicFilter, ConnectReturnCode};
 
@@ -5,6 +261,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use std::collections::HashMap;
 
 /// MQTT packet encoder/decoder
+#[derive(Clone, Debug)]
 pub struct MqttCodec {
     protocol_version: u8,
 }

@@ -1,0 +1,277 @@
+warning: fields `client_id` and `username` are never read
+   --> src/server.rs:101:5
+    |
+99  | struct ClientConnectionInfo {
+    |        -------------------- fields in this struct
+100 |     sender: Sender<Message>,
+101 |     client_id: String,
+    |     ^^^^^^^^^
+102 |     username: Option<String>,
+    |     ^^^^^^^^
+    |
+    = note: `ClientConnectionInfo` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` on by default
+
+warning: field `message_receiver` is never read
+   --> src/server.rs:251:5
+    |
+238 | struct ServerConnection {
+    |        ---------------- field in this struct
+...
+251 |     message_receiver: Option<Receiver<Message>>,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: associated function `handle_messages` is never used
+   --> src/server.rs:291:14
+    |
+254 | impl ServerConnection {
+    | --------------------- associated function in this implementation
+...
+291 |     async fn handle_messages(
+    |              ^^^^^^^^^^^^^^^
+
+warning: `dumq-mqtt` (lib) generated 3 warnings
+warning: unused import: `std::collections::HashMap`
+ --> examples/message_exchange.rs:8:5
+  |
+8 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `dumq-mqtt` (example "message_exchange") generated 1 warning (run `cargo fix --example "message_exchange"` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `target/debug/examples/message_exchange`
+[2025-08-10T08:16:26Z INFO  message_exchange] Starting MQTT message exchange example
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Starting MQTT server on 127.0.0.1:1883
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] MQTT server started successfully
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] Connecting to MQTT broker at 127.0.0.1:1883
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] New connection from 127.0.0.1:52686
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] TCP connection established
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 48
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: Connect, dup: false, qos: 0, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 47
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x2e
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 46
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 46
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\x04MQTT\x04\xc2\0<\0\x10publisher_client\0\x05user1\0\tpassword1"
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 16
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 5
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 9
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Handling CONNECT from client: publisher_client
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Client publisher_client connected successfully
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: ConnAck, dup: false, qos: 0, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 3
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x02
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\0"
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] MQTT connection established successfully
+[2025-08-10T08:16:26Z INFO  message_exchange] Publisher connected
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] Connecting to MQTT broker at 127.0.0.1:1883
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] New connection from 127.0.0.1:52688
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] TCP connection established
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 49
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: Connect, dup: false, qos: 0, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 48
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x2f
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 47
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 47
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\x04MQTT\x04\xc2\0<\0\x11subscriber_client\0\x05user1\0\tpassword1"
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 17
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 5
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 9
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Handling CONNECT from client: subscriber_client
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Client subscriber_client connected successfully
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: ConnAck, dup: false, qos: 0, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 3
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x02
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\0"
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] MQTT connection established successfully
+[2025-08-10T08:16:26Z INFO  message_exchange] Subscriber connected
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] Subscribing to topic 'test/topic' with QoS AtLeastOnce
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 17
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: Subscribe, dup: false, qos: 1, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 16
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x0f
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 15
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 15
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\x01\0\ntest/topic\x01"
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 10
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Handling SUBSCRIBE with packet ID: 1
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Client 'subscriber_client' subscribing to 1 topics
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Processing subscription: topic='test/topic', qos=1
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Added subscription for client 'subscriber_client' to topic 'test/topic' with QoS 1
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Updated session subscriptions for client 'subscriber_client': topic='test/topic', qos=1
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sent SUBACK to client 'subscriber_client' with return codes: [1]
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Successfully processed 1 subscriptions for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 5
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: SubAck, dup: false, qos: 0, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x03
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 3
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 3
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\x01\x01"
+[2025-08-10T08:16:26Z INFO  message_exchange] Subscriber subscribed to test/topic
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] Starting message listener
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] Publishing message to topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 43
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: Publish, dup: false, qos: 1, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 42
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x29
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 41
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 41
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\ntest/topic\0\x01Hello MQTT World! Message 1"
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 10
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Handling PUBLISH to topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Publishing message to subscribers for topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 total subscriptions
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Topic 'test/topic' matches filter 'test/topic' for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 matched subscribers for topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Message queued for client 'subscriber_client' on topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sending message to subscribers for topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 total subscriptions
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Topic 'test/topic' matches filter 'test/topic' for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 matched subscribers for topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sending message to client 'subscriber_client' on topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Successfully queued message for client 'subscriber_client'
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Sending PUBACK for QoS 1 message with packet ID: 1
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: PubAck, dup: false, qos: 0, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 3
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x02
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\x01"
+[2025-08-10T08:16:26Z INFO  message_exchange] Published message 1
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] Publishing message to topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 43
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: Publish, dup: false, qos: 1, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 42
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x29
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 41
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 41
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\ntest/topic\0\x02Hello MQTT World! Message 2"
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 10
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Handling PUBLISH to topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Publishing message to subscribers for topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 total subscriptions
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Topic 'test/topic' matches filter 'test/topic' for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 matched subscribers for topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Message queued for client 'subscriber_client' on topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sending message to subscribers for topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 total subscriptions
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Topic 'test/topic' matches filter 'test/topic' for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 matched subscribers for topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sending message to client 'subscriber_client' on topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Successfully queued message for client 'subscriber_client'
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Sending PUBACK for QoS 1 message with packet ID: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: PubAck, dup: false, qos: 0, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 3
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x02
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\x02"
+[2025-08-10T08:16:26Z INFO  message_exchange] Published message 2
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] Publishing message to topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 43
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: Publish, dup: false, qos: 1, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 42
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x29
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 41
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 41
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\ntest/topic\0\x03Hello MQTT World! Message 3"
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 10
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Handling PUBLISH to topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Publishing message to subscribers for topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 total subscriptions
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Topic 'test/topic' matches filter 'test/topic' for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 matched subscribers for topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Message queued for client 'subscriber_client' on topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sending message to subscribers for topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 total subscriptions
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Topic 'test/topic' matches filter 'test/topic' for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 matched subscribers for topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sending message to client 'subscriber_client' on topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Successfully queued message for client 'subscriber_client'
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Sending PUBACK for QoS 1 message with packet ID: 3
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: PubAck, dup: false, qos: 0, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 3
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x02
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\x03"
+[2025-08-10T08:16:26Z INFO  message_exchange] Published message 3
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] Publishing message to topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 43
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: Publish, dup: false, qos: 1, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 42
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x29
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 41
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 41
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\ntest/topic\0\x04Hello MQTT World! Message 4"
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 10
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Handling PUBLISH to topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Publishing message to subscribers for topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 total subscriptions
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Topic 'test/topic' matches filter 'test/topic' for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 matched subscribers for topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Message queued for client 'subscriber_client' on topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sending message to subscribers for topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 total subscriptions
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Topic 'test/topic' matches filter 'test/topic' for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 matched subscribers for topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sending message to client 'subscriber_client' on topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Successfully queued message for client 'subscriber_client'
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Sending PUBACK for QoS 1 message with packet ID: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: PubAck, dup: false, qos: 0, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 3
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x02
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\x04"
+[2025-08-10T08:16:26Z INFO  message_exchange] Published message 4
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::client] Publishing message to topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 43
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: Publish, dup: false, qos: 1, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 42
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x29
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 41
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 41
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\ntest/topic\0\x05Hello MQTT World! Message 5"
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding string with length: 10
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Handling PUBLISH to topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Publishing message to subscribers for topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 total subscriptions
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Topic 'test/topic' matches filter 'test/topic' for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 matched subscribers for topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Message queued for client 'subscriber_client' on topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sending message to subscribers for topic: test/topic
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 total subscriptions
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Topic 'test/topic' matches filter 'test/topic' for client 'subscriber_client'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Found 1 matched subscribers for topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Sending message to client 'subscriber_client' on topic 'test/topic'
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::server] Successfully queued message for client 'subscriber_client'
+[2025-08-10T08:16:26Z INFO  dumq_mqtt::server] Sending PUBACK for QoS 1 message with packet ID: 5
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding packet, buffer size: 4
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Packet type: PubAck, dup: false, qos: 0, retain: false
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoding remaining length, buffer size: 3
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length byte 0: 0x02
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Decoded remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Remaining length: 2
+[2025-08-10T08:16:26Z DEBUG dumq_mqtt::codec] Buffer after remaining length: b"\0\x05"
+[2025-08-10T08:16:26Z INFO  message_exchange] Published message 5
+[2025-08-10T08:16:28Z INFO  message_exchange] Received 0 messages
+[2025-08-10T08:16:28Z INFO  dumq_mqtt::client] Disconnecting from MQTT broker
+[2025-08-10T08:16:28Z INFO  dumq_mqtt::client] Disconnected from MQTT broker
+[2025-08-10T08:16:28Z INFO  message_exchange] Publisher disconnected
+[2025-08-10T08:16:28Z INFO  message_exchange] Message exchange example completed

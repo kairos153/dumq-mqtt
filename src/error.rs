@@ -1,3 +1,136 @@
+//! # Error Handling Module
+//! 
+//! This module provides comprehensive error handling for the DumQ MQTT library.
+//! It defines all error types that can occur during MQTT operations and provides
+//! a unified `Result` type for consistent error handling across the library.
+//! 
+//! ## Overview
+//! 
+//! The error handling system is built on top of the `thiserror` crate, which provides
+//! automatic error conversion and formatting. Each error variant includes detailed
+//! context information to help diagnose issues during development and operation.
+//! 
+//! ## Error Categories
+//! 
+//! ### I/O Errors
+//! - **`Io`**: Wraps standard library I/O errors (connection failures, read/write errors)
+//! 
+//! ### Connection Errors
+//! - **`Connection`**: General connection-related failures
+//! - **`Disconnected`**: Unexpected disconnection from the broker
+//! - **`Timeout`**: Connection or operation timeouts
+//! 
+//! ### Protocol Errors
+//! - **`Protocol`**: MQTT protocol violations or malformed packets
+//! - **`InvalidPacket`**: Corrupted or invalid packet data
+//! - **`UnsupportedVersion`**: Unsupported MQTT protocol version
+//! - **`InvalidQoS`**: Invalid Quality of Service level
+//! - **`InvalidTopic`**: Malformed topic names or filters
+//! 
+//! ### Authentication & Authorization
+//! - **`Authentication`**: Failed authentication attempts
+//! - **`Authorization`**: Insufficient permissions for requested operations
+//! 
+//! ### Server & Client Errors
+//! - **`Server`**: Server-side errors or broker issues
+//! - **`Client`**: Client-side configuration or state errors
+//! 
+//! ### Data Processing
+//! - **`Serialization`**: Errors during packet encoding
+//! - **`Deserialization`**: Errors during packet decoding
+//! 
+//! ## Usage Examples
+//! 
+//! ### Basic Error Handling
+//! 
+//! ```rust
+//! use dumq_mqtt::error::{Error, Result};
+//! 
+//! fn handle_mqtt_operation() -> Result<()> {
+//!     // Your MQTT operation here
+//!     Ok(())
+//! }
+//! 
+//! match handle_mqtt_operation() {
+//!     Ok(()) => println!("Operation successful"),
+//!     Err(e) => match e {
+//!         Error::Connection(msg) => eprintln!("Connection failed: {}", msg),
+//!         Error::Timeout => eprintln!("Operation timed out"),
+//!         Error::Authentication(msg) => eprintln!("Authentication failed: {}", msg),
+//!         _ => eprintln!("Other error: {:?}", e),
+//!     }
+//! }
+//! ```
+//! 
+//! ### Error Conversion
+//! 
+//! The error types support automatic conversion from standard library errors:
+//! 
+//! ```rust
+//! use std::io;
+//! use dumq_mqtt::error::Error;
+//! 
+//! fn io_operation() -> io::Result<()> {
+//!     // Some I/O operation
+//!     Ok(())
+//! }
+//! 
+//! fn mqtt_operation() -> Result<(), Error> {
+//!     // I/O errors are automatically converted
+//!     io_operation()?;
+//!     Ok(())
+//! }
+//! ```
+//! 
+//! ### Custom Error Context
+//! 
+//! You can add additional context to errors:
+//! 
+//! ```rust
+//! use dumq_mqtt::error::Error;
+//! 
+//! let connection_error = Error::Connection("Failed to establish connection to broker".to_string());
+//! let protocol_error = Error::Protocol("Invalid packet format in CONNECT packet".to_string());
+//! 
+//! // Errors can be formatted with detailed information
+//! println!("{}", connection_error);
+//! println!("{}", protocol_error);
+//! ```
+//! 
+//! ## Error Recovery Strategies
+//! 
+//! ### Connection Errors
+//! - Implement exponential backoff for reconnection attempts
+//! - Check network connectivity before retrying
+//! - Validate broker configuration
+//! 
+//! ### Protocol Errors
+//! - Verify MQTT protocol version compatibility
+//! - Check packet format and encoding
+//! - Validate topic names and QoS levels
+//! 
+//! ### Authentication Errors
+//! - Verify credentials and permissions
+//! - Check broker authentication configuration
+//! - Ensure proper certificate setup for TLS connections
+//! 
+//! ## Best Practices
+//! 
+//! 1. **Always handle errors explicitly** - Don't ignore error results
+//! 2. **Provide meaningful error context** - Include relevant details in error messages
+//! 3. **Implement proper error recovery** - Have fallback strategies for common errors
+//! 4. **Log errors appropriately** - Use appropriate log levels for different error types
+//! 5. **Return early on errors** - Use the `?` operator for clean error propagation
+//! 
+//! ## Testing
+//! 
+//! The module includes comprehensive tests for all error variants and conversion
+//! implementations. Run tests with:
+//! 
+//! ```bash
+//! cargo test --package dumq-mqtt --lib error
+//! ```
+
 use thiserror::Error;
 
 /// MQTT library error types
