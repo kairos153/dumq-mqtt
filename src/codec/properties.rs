@@ -296,6 +296,13 @@ pub fn decode_connack_properties(buf: &mut BytesMut) -> Result<ConnAckProperties
         return Ok(properties);
     }
     
+    // Check if we have enough bytes for the properties
+    if buf.len() < properties_length {
+        return Err(crate::error::Error::InvalidPacket(
+            format!("Insufficient bytes for ConnAck properties: need {}, have {}", properties_length, buf.len())
+        ));
+    }
+    
     let mut properties_buf = buf.split_to(properties_length);
     
     while properties_buf.has_remaining() {
@@ -303,25 +310,61 @@ pub fn decode_connack_properties(buf: &mut BytesMut) -> Result<ConnAckProperties
         
         match property_id {
             0x11 => { // Session Expiry Interval
-                properties.session_expiry_interval = Some(properties_buf.get_u32());
+                if properties_buf.remaining() >= 4 {
+                    properties.session_expiry_interval = Some(properties_buf.get_u32());
+                } else {
+                    return Err(crate::error::Error::InvalidPacket(
+                        "Insufficient bytes for Session Expiry Interval".to_string()
+                    ));
+                }
             }
             0x21 => { // Receive Maximum
-                properties.receive_maximum = Some(properties_buf.get_u16());
+                if properties_buf.remaining() >= 2 {
+                    properties.receive_maximum = Some(properties_buf.get_u16());
+                } else {
+                    return Err(crate::error::Error::InvalidPacket(
+                        "Insufficient bytes for Receive Maximum".to_string()
+                    ));
+                }
             }
             0x24 => { // Maximum QoS
-                properties.max_qos = Some(properties_buf.get_u8());
+                if properties_buf.remaining() >= 1 {
+                    properties.max_qos = Some(properties_buf.get_u8());
+                } else {
+                    return Err(crate::error::Error::InvalidPacket(
+                        "Insufficient bytes for Maximum QoS".to_string()
+                    ));
+                }
             }
             0x25 => { // Retain Available
-                properties.retain_available = Some(properties_buf.get_u8() != 0);
+                if properties_buf.remaining() >= 1 {
+                    properties.retain_available = Some(properties_buf.get_u8() != 0);
+                } else {
+                    return Err(crate::error::Error::InvalidPacket(
+                        "Insufficient bytes for Retain Available".to_string()
+                    ));
+                }
             }
             0x27 => { // Maximum Packet Size
-                properties.max_packet_size = Some(properties_buf.get_u32());
+                if properties_buf.remaining() >= 4 {
+                    properties.max_packet_size = Some(properties_buf.get_u32());
+                } else {
+                    return Err(crate::error::Error::InvalidPacket(
+                        "Insufficient bytes for Maximum Packet Size".to_string()
+                    ));
+                }
             }
             0x12 => { // Assigned Client Identifier
                 properties.assigned_client_identifier = Some(decode_string(&mut properties_buf)?);
             }
             0x22 => { // Topic Alias Maximum
-                properties.topic_alias_maximum = Some(properties_buf.get_u16());
+                if properties_buf.remaining() >= 2 {
+                    properties.topic_alias_maximum = Some(properties_buf.get_u16());
+                } else {
+                    return Err(crate::error::Error::InvalidPacket(
+                        "Insufficient bytes for Topic Alias Maximum".to_string()
+                    ));
+                }
             }
             0x1F => { // Reason String
                 properties.reason_string = Some(decode_string(&mut properties_buf)?);
@@ -332,16 +375,40 @@ pub fn decode_connack_properties(buf: &mut BytesMut) -> Result<ConnAckProperties
                 properties.user_properties.insert(key, value);
             }
             0x28 => { // Wildcard Subscription Available
-                properties.wildcard_subscription_available = Some(properties_buf.get_u8() != 0);
+                if properties_buf.remaining() >= 1 {
+                    properties.wildcard_subscription_available = Some(properties_buf.get_u8() != 0);
+                } else {
+                    return Err(crate::error::Error::InvalidPacket(
+                        "Insufficient bytes for Wildcard Subscription Available".to_string()
+                    ));
+                }
             }
             0x29 => { // Subscription Identifiers Available
-                properties.subscription_identifiers_available = Some(properties_buf.get_u8() != 0);
+                if properties_buf.remaining() >= 1 {
+                    properties.subscription_identifiers_available = Some(properties_buf.get_u8() != 0);
+                } else {
+                    return Err(crate::error::Error::InvalidPacket(
+                        "Insufficient bytes for Subscription Identifiers Available".to_string()
+                    ));
+                }
             }
             0x2A => { // Shared Subscription Available
-                properties.shared_subscription_available = Some(properties_buf.get_u8() != 0);
+                if properties_buf.remaining() >= 1 {
+                    properties.shared_subscription_available = Some(properties_buf.get_u8() != 0);
+                } else {
+                    return Err(crate::error::Error::InvalidPacket(
+                        "Insufficient bytes for Shared Subscription Available".to_string()
+                    ));
+                }
             }
             0x13 => { // Server Keep Alive
-                properties.server_keep_alive = Some(properties_buf.get_u16());
+                if properties_buf.remaining() >= 2 {
+                    properties.server_keep_alive = Some(properties_buf.get_u16());
+                } else {
+                    return Err(crate::error::Error::InvalidPacket(
+                        "Insufficient bytes for Server Keep Alive".to_string()
+                    ));
+                }
             }
             0x1A => { // Response Information
                 properties.response_information = Some(decode_string(&mut properties_buf)?);
@@ -357,7 +424,7 @@ pub fn decode_connack_properties(buf: &mut BytesMut) -> Result<ConnAckProperties
             }
             _ => {
                 // Unknown property, skip it
-                log::warn!("Unknown connack property ID: 0x{:02x}", property_id);
+                log::warn!("Unknown ConnAck property ID: 0x{:02x}", property_id);
                 // Try to skip the property value (this is a simplified approach)
                 if properties_buf.has_remaining() {
                     properties_buf.advance(1);

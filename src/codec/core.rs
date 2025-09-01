@@ -71,7 +71,7 @@ impl MqttCodec {
         log::debug!("Decoding packet, buffer size: {}", buf.len());
 
         // Read fixed header
-        let first_byte = buf[0];
+        let first_byte = buf.get_u8();
         let packet_type = PacketType::from_u8(first_byte >> 4)
             .ok_or_else(|| Error::InvalidPacket("Invalid packet type".to_string()))?;
         
@@ -80,9 +80,6 @@ impl MqttCodec {
         let retain = (first_byte & 0x01) != 0;
 
         log::debug!("Packet type: {:?}, dup: {}, qos: {}, retain: {}", packet_type, dup, qos, retain);
-
-        // Remove the first byte (packet type and flags)
-        buf.advance(1);
 
         // Read remaining length
         let remaining_length = decode_remaining_length(buf)?;
@@ -104,8 +101,16 @@ impl MqttCodec {
         };
 
         // Read variable header and payload
-        let mut payload_buf = buf.split_to(remaining_length);
-        let payload = self.decode_payload(&header, &mut payload_buf)?;
+        let payload = if remaining_length > 0 {
+            if buf.len() < remaining_length {
+                return Err(Error::InvalidPacket(format!("Insufficient data for payload: need {}, have {}", remaining_length, buf.len())));
+            }
+            let mut payload_buf = buf.split_to(remaining_length);
+            self.decode_payload(&header, &mut payload_buf)?
+        } else {
+            // No payload for this packet type
+            self.decode_payload(&header, &mut BytesMut::new())?
+        };
 
         let packet = Packet { header, payload };
         Ok(Some(packet))

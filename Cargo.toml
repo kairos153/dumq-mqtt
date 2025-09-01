@@ -15,6 +15,9 @@ log = "0.4"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
+env_logger = "0.10"
+log4rs = "1.2"
+chrono = "0.4"
 
 [dev-dependencies]
 tokio-test = "0.4"
@@ -31,6 +34,10 @@ path = "examples/server_example.rs"
 [[example]]
 name = "retain_message_example"
 path = "examples/retain_message_example.rs"
+
+[[example]]
+name = "file_logging_example"
+path = "examples/file_logging_example.rs"
 
 [lib]
 name = "dumq_mqtt"

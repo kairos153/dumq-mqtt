@@ -170,6 +170,7 @@ pub mod protocol;
 pub mod codec;
 pub mod error;
 pub mod types;
+pub mod logging;
 
 // Re-export main client components
 pub use client::{Client, ClientConfig, ClientConnection, ConnectionState, MessageHandler};

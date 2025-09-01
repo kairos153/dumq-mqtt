@@ -1,0 +1,90 @@
+2025-09-01 09:06:37.960 [INFO] dumq_mqtt::logging - Simple file logging initialized. Log file: debug.log
+2025-09-01 09:06:37.961 [INFO] file_logging_example - Simple file logging initialized
+2025-09-01 09:06:37.961 [DEBUG] file_logging_example - This debug message will be written to debug.log
+2025-09-01 09:07:16.644 [INFO] dumq_mqtt::logging - Simple file logging initialized. Log file: debug.log
+2025-09-01 09:07:16.645 [INFO] file_logging_example - File logging initialized for debugging
+2025-09-01 09:07:16.645 [DEBUG] file_logging_example - This debug message will be written to debug.log
+2025-09-01 09:07:16.645 [INFO] file_logging_example - This info message will also be written to debug.log
+2025-09-01 09:07:16.645 [WARN] file_logging_example - This warning will be written to debug.log
+2025-09-01 09:07:16.646 [ERROR] file_logging_example - This error will be written to debug.log
+2025-09-01 09:07:16.646 [INFO] file_logging_example - Starting MQTT server on 127.0.0.1:1884
+2025-09-01 09:07:16.647 [INFO] dumq_mqtt::server - Starting MQTT server on 127.0.0.1:1884
+2025-09-01 09:07:16.647 [INFO] dumq_mqtt::server - MQTT server started successfully
+2025-09-01 09:07:16.748 [INFO] file_logging_example - Connecting to MQTT broker...
+2025-09-01 09:07:16.748 [INFO] dumq_mqtt::client - Connecting to MQTT broker at localhost:1884
+2025-09-01 09:07:16.749 [INFO] dumq_mqtt::server - New connection from 127.0.0.1:58096
+2025-09-01 09:07:16.749 [INFO] dumq_mqtt::client - TCP connection established
+2025-09-01 09:07:16.749 [DEBUG] dumq_mqtt::codec::core - Decoding packet, buffer size: 33
+2025-09-01 09:07:16.749 [DEBUG] dumq_mqtt::codec::core - Packet type: Connect, dup: false, qos: 0, retain: false
+2025-09-01 09:07:16.749 [DEBUG] dumq_mqtt::codec::utils - Decoding remaining length, buffer size: 32
+2025-09-01 09:07:16.749 [DEBUG] dumq_mqtt::codec::utils - Remaining length byte 0: 0x1f
+2025-09-01 09:07:16.749 [DEBUG] dumq_mqtt::codec::utils - Decoded remaining length: 31
+2025-09-01 09:07:16.749 [DEBUG] dumq_mqtt::codec::core - Remaining length: 31
+2025-09-01 09:07:16.750 [DEBUG] dumq_mqtt::codec::core - Buffer after remaining length: b"\0\x04MQTT\x04\x02\0\x1e\0\x13logging_test_client"
+2025-09-01 09:07:16.750 [DEBUG] dumq_mqtt::codec::utils - Decoding string with length: 4
+2025-09-01 09:07:16.750 [DEBUG] dumq_mqtt::codec::utils - Decoding string with length: 19
+2025-09-01 09:07:16.750 [INFO] dumq_mqtt::server::connection - Handling CONNECT from client: logging_test_client
+2025-09-01 09:07:16.750 [DEBUG] dumq_mqtt::codec::core - Decoding packet, buffer size: 4
+2025-09-01 09:07:16.750 [DEBUG] dumq_mqtt::codec::core - Packet type: ConnAck, dup: false, qos: 0, retain: false
+2025-09-01 09:07:16.750 [DEBUG] dumq_mqtt::codec::utils - Decoding remaining length, buffer size: 3
+2025-09-01 09:07:16.750 [DEBUG] dumq_mqtt::codec::utils - Remaining length byte 0: 0x02
+2025-09-01 09:07:16.750 [DEBUG] dumq_mqtt::codec::utils - Decoded remaining length: 2
+2025-09-01 09:07:16.750 [DEBUG] dumq_mqtt::codec::core - Remaining length: 2
+2025-09-01 09:07:16.750 [DEBUG] dumq_mqtt::codec::core - Buffer after remaining length: b"\0\0"
+2025-09-01 09:07:16.750 [INFO] dumq_mqtt::client - MQTT connection established successfully
+2025-09-01 09:07:16.750 [INFO] file_logging_example - Successfully connected to MQTT broker
+2025-09-01 09:07:16.750 [INFO] file_logging_example - Subscribing to 'test/logging' topic...
+2025-09-01 09:07:16.750 [INFO] dumq_mqtt::client - Subscribing to topic 'test/logging' with QoS AtLeastOnce
+2025-09-01 09:07:16.751 [DEBUG] dumq_mqtt::codec::core - Decoding packet, buffer size: 19
+2025-09-01 09:07:16.751 [DEBUG] dumq_mqtt::codec::core - Packet type: Subscribe, dup: false, qos: 1, retain: false
+2025-09-01 09:07:16.751 [DEBUG] dumq_mqtt::codec::utils - Decoding remaining length, buffer size: 18
+2025-09-01 09:07:16.751 [DEBUG] dumq_mqtt::codec::utils - Remaining length byte 0: 0x11
+2025-09-01 09:07:16.751 [DEBUG] dumq_mqtt::codec::utils - Decoded remaining length: 17
+2025-09-01 09:07:16.751 [DEBUG] dumq_mqtt::codec::core - Remaining length: 17
+2025-09-01 09:07:16.751 [DEBUG] dumq_mqtt::codec::core - Buffer after remaining length: b"\0\x01\0\x0ctest/logging\x01"
+2025-09-01 09:07:16.751 [DEBUG] dumq_mqtt::codec::utils - Decoding string with length: 12
+2025-09-01 09:07:16.751 [INFO] dumq_mqtt::server::connection - Handling SUBSCRIBE with packet ID: 1
+2025-09-01 09:07:16.751 [DEBUG] dumq_mqtt::codec::core - Decoding packet, buffer size: 5
+2025-09-01 09:07:16.751 [DEBUG] dumq_mqtt::codec::core - Packet type: SubAck, dup: false, qos: 0, retain: false
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::utils - Decoding remaining length, buffer size: 4
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::utils - Remaining length byte 0: 0x03
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::utils - Decoded remaining length: 3
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::core - Remaining length: 3
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::core - Buffer after remaining length: b"\0\x01\x01"
+2025-09-01 09:07:16.752 [INFO] file_logging_example - Successfully subscribed to 'test/logging'
+2025-09-01 09:07:16.752 [INFO] file_logging_example - Publishing test message...
+2025-09-01 09:07:16.752 [INFO] dumq_mqtt::client - Publishing message to topic 'test/logging'
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::core - Decoding packet, buffer size: 50
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::core - Packet type: Publish, dup: false, qos: 1, retain: false
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::utils - Decoding remaining length, buffer size: 49
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::utils - Remaining length byte 0: 0x30
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::utils - Decoded remaining length: 48
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::core - Remaining length: 48
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::core - Buffer after remaining length: b"\0\x0ctest/logging\0\x02Hello from file logging example!"
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::codec::utils - Decoding string with length: 12
+2025-09-01 09:07:16.752 [INFO] dumq_mqtt::server::connection - Handling PUBLISH to topic: test/logging
+2025-09-01 09:07:16.752 [DEBUG] dumq_mqtt::server::connection - Would send message to client: logging_test_client
+2025-09-01 09:07:16.752 [INFO] dumq_mqtt::server::connection - Sending PUBACK for QoS 1 message with packet ID: 2
+2025-09-01 09:07:16.753 [DEBUG] dumq_mqtt::codec::core - Decoding packet, buffer size: 4
+2025-09-01 09:07:16.753 [DEBUG] dumq_mqtt::codec::core - Packet type: PubAck, dup: false, qos: 0, retain: false
+2025-09-01 09:07:16.753 [DEBUG] dumq_mqtt::codec::utils - Decoding remaining length, buffer size: 3
+2025-09-01 09:07:16.753 [DEBUG] dumq_mqtt::codec::utils - Remaining length byte 0: 0x02
+2025-09-01 09:07:16.753 [DEBUG] dumq_mqtt::codec::utils - Decoded remaining length: 2
+2025-09-01 09:07:16.753 [DEBUG] dumq_mqtt::codec::core - Remaining length: 2
+2025-09-01 09:07:16.753 [DEBUG] dumq_mqtt::codec::core - Buffer after remaining length: b"\0\x02"
+2025-09-01 09:07:16.753 [INFO] file_logging_example - Successfully published message
+2025-09-01 09:07:16.753 [INFO] file_logging_example - Receiving messages for 3 seconds...
+2025-09-01 09:07:48.661 [ERROR] file_logging_example - Error receiving message: Timeout
+2025-09-01 09:07:48.662 [INFO] file_logging_example - Disconnecting from MQTT broker...
+2025-09-01 09:07:48.662 [INFO] dumq_mqtt::client - Disconnecting from MQTT broker
+2025-09-01 09:07:48.662 [INFO] dumq_mqtt::client - Disconnected from MQTT broker
+2025-09-01 09:07:48.662 [DEBUG] dumq_mqtt::codec::core - Decoding packet, buffer size: 2
+2025-09-01 09:07:48.662 [INFO] file_logging_example - Successfully disconnected from MQTT broker
+2025-09-01 09:07:48.662 [DEBUG] dumq_mqtt::codec::core - Packet type: Disconnect, dup: false, qos: 0, retain: false
+2025-09-01 09:07:48.662 [DEBUG] dumq_mqtt::codec::utils - Decoding remaining length, buffer size: 1
+2025-09-01 09:07:48.663 [DEBUG] dumq_mqtt::codec::utils - Remaining length byte 0: 0x00
+2025-09-01 09:07:48.663 [DEBUG] dumq_mqtt::codec::utils - Decoded remaining length: 0
+2025-09-01 09:07:48.663 [DEBUG] dumq_mqtt::codec::core - Remaining length: 0
+2025-09-01 09:07:48.663 [DEBUG] dumq_mqtt::codec::core - Buffer after remaining length: b""
+2025-09-01 09:07:48.663 [INFO] dumq_mqtt::server::connection - Handling DISCONNECT
+2025-09-01 09:07:48.663 [ERROR] dumq_mqtt::server - Connection error: Disconnected

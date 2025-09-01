@@ -44,6 +44,9 @@ pub fn encode_bytes(data: &[u8], buf: &mut BytesMut) -> Result<()> {
 
 /// Decode binary data with length prefix
 pub fn decode_bytes(buf: &mut BytesMut) -> Result<Bytes> {
+    if buf.len() < 2 {
+        return Err(Error::InvalidPacket("Insufficient data for bytes length".to_string()));
+    }
     let len = buf.get_u16() as usize;
     if buf.len() < len {
         return Err(Error::InvalidPacket("Insufficient data for bytes".to_string()));
@@ -92,8 +95,8 @@ pub fn decode_remaining_length(buf: &mut BytesMut) -> Result<usize> {
             return Err(Error::InvalidPacket("Insufficient data for remaining length".to_string()));
         }
         
-        let byte = buf[0];
-        buf.advance(1);
+        // Use get_u8() instead of buf[0] + advance(1) to avoid race conditions
+        let byte = buf.get_u8();
         
         log::debug!("Remaining length byte {}: 0x{:02x}", i, byte);
         
